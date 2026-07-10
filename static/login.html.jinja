@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>App Skeleton — Login</title>
+<title>{{ app_name }} — Login</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -38,7 +38,7 @@ button:hover { background: #64B5F6; }
 </head>
 <body>
 <div class="card">
-  <h2>App Skeleton</h2>
+  <h2>{{ app_name }}</h2>
   <p class="sub">Enter your password to continue</p>
   <div id="err" class="error">Invalid password. Please try again.</div>
   <form method="POST" action="/auth/login">

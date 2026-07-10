@@ -1,0 +1,32 @@
+app_name:
+  type: str
+  help: "Nome applicazione mostrato in UI, titoli pagina e login (es. Mail Manager)"
+
+app_slug:
+  type: str
+  help: "Slug per cookie/Docker (minuscolo, underscore, no spazi) — invariato di solito"
+  default: "{{ app_name.lower().replace(' ', '_').replace('-', '_') }}"
+
+github_owner:
+  type: str
+  help: "Owner GitHub per l'immagine GHCR (ghcr.io/<owner>/...)"
+  default: "daniloreddy"
+
+_exclude:
+  - "copier.yml"
+  - ".git"
+  - "data"
+  - "__pycache__"
+  - "*.pyc"
+  - ".pytest_cache"
+  - ".ruff_cache"
+  - ".mypy_cache"
+  - ".nicegui"
+
+_envops:
+  keep_trailing_newline: true
+
+# Default suffix (.jinja) kept deliberately: .github/workflows/*.yml uses the same
+# "${{ }}" delimiter for GitHub Actions expressions, which would collide with Jinja
+# if every file were rendered. Only files explicitly suffixed .jinja are templated;
+# Copier strips the suffix on output.

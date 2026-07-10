@@ -19,24 +19,51 @@ quel pacchetto: `main.py`, routing, pagine NiceGUI, Docker, script.
 
 ## Come partire da questo scaffold per un progetto nuovo
 
-1. Copia questa cartella nella nuova posizione, `git init` (o scollega dal remoto se
-   clonato da un "Use this template" su GitHub).
-2. Rinomina i riferimenti al nome dell'app:
-   - `app/ui/router.py`: `cookie_name="app_skeleton_session"` → nome univoco del progetto.
-   - `app/ui/pages.py`: `APP_NAME = "App Skeleton"`.
-   - `static/login.html`: `<title>`/`<h2>App Skeleton`.
-   - `docker-compose.yml`/`docker-compose-dev.yml`: nome servizio/immagine/container.
-   - `app/main.py`: `FastAPI(title="App Skeleton", ...)`.
-3. Cancella `app/libs/example.py` (e il suo test) e aggiungi lì la logica vera del
+Questo repo è un template [Copier](https://copier.readthedocs.io/) — non si copia
+a mano. Copier tiene traccia (in `.copier-answers.yml`, generato nel progetto
+derivato) di quale versione dello scaffold è stata usata, così un fix successivo
+qui può essere riapplicato ai progetti già creati (`copier update`), invece di
+restare bloccato alla copia iniziale.
+
+1. Installa Copier una volta sola (tool CLI, non dipendenza del progetto):
+   ```bash
+   pipx install copier   # o: pip install --user copier
+   ```
+2. Genera il nuovo progetto:
+   ```bash
+   copier copy https://github.com/daniloreddy/redberry-app-skeleton.git percorso/nuovo-progetto
+   # oppure, da un checkout locale dello scaffold:
+   copier copy C:/redberry/src/python/redberry-app-skeleton percorso/nuovo-progetto
+   ```
+   Copier chiede `app_name` (es. "Mail Manager"), `app_slug` (default derivato
+   automaticamente, usato per cookie/Docker) e `github_owner`. I valori sostituiscono
+   tutti i riferimenti hardcoded (`APP_NAME`, `cookie_name`, nome servizio/immagine
+   Docker, `FastAPI(title=...)`, `static/login.html`) — nessun rename manuale.
+3. `cd percorso/nuovo-progetto && git init` (il template non include `.git`).
+4. Cancella `app/libs/example.py` (e il suo test) e aggiungi lì la logica vera del
    progetto — moduli puri, senza import FastAPI/NiceGUI, testabili senza `TestClient`.
-4. Estendi `app/config.py`: aggiungi le chiavi runtime-editable specifiche del
+5. Estendi `app/config.py`: aggiungi le chiavi runtime-editable specifiche del
    progetto a `_DEFAULTS`/`_SECRET_KEYS` (nessuna sottoclasse necessaria — vedi
    il commento nel file). Aggiungi i campi corrispondenti nella pagina Config
    (`app/ui/pages.py`, `config_page()`), seguendo lo stesso pattern già presente.
-5. Sostituisci `GET /api/v1/example` in `app/main.py` con gli endpoint reali,
+6. Sostituisci `GET /api/v1/example` in `app/main.py` con gli endpoint reali,
    mantenendo il pattern `@limiter.limit(...)` + `metrics.record(...)`.
-6. Aggiorna `requirements.txt` con le dipendenze specifiche del progetto.
-7. Copia `.env.example` in `.env`, imposta la password: `python scripts/set_password.py`.
+7. Aggiorna `requirements.txt` con le dipendenze specifiche del progetto.
+8. Copia `.env.example` in `.env`, imposta la password: `python scripts/set_password.py`.
+
+### Aggiornare un progetto derivato quando lo scaffold cambia
+
+Dalla cartella del progetto derivato (richiede `.copier-answers.yml` committato,
+generato automaticamente al passo 2):
+
+```bash
+copier update
+```
+
+Copier calcola il diff tra la versione dello scaffold usata alla creazione e
+quella corrente, e lo riapplica al progetto — come un merge git. Conflitti su
+file personalizzati (es. `app/main.py` se hai aggiunto endpoint) vanno risolti
+a mano, marcati `.rej`/marker di conflitto nel file, stesso flusso di un merge.
 
 ## Avvio rapido (locale)
 

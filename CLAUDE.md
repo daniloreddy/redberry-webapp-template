@@ -3,6 +3,29 @@
 Scaffold riusabile, non un prodotto. Punto di partenza per nuovi progetti
 FastAPI + NiceGUI — vedi `README.md` per la checklist di derivazione.
 
+## Template Copier — questo repo non è direttamente eseguibile
+
+Da quando è stato convertito in template [Copier](https://copier.readthedocs.io/),
+i file che contengono placeholder (`app/main.py.jinja`, `app/ui/router.py.jinja`,
+`app/ui/pages.py.jinja`, `static/login.html.jinja`, `docker-compose*.yml.jinja`)
+esistono solo con suffisso `.jinja` nel sorgente — Copier lo strip al momento
+della generazione. Questo significa che **`python -m app.main`, `pytest`, `mypy
+app` NON funzionano lanciati direttamente in questo repo** (i file `.py` veri
+non esistono finché non generi un'istanza).
+
+**Per modificare/validare lo scaffold**: genera un'istanza di prova con Copier e
+lavora/testa lì, poi riporta le modifiche verificate nei file `.jinja` sorgente:
+
+```bash
+copier copy . /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
+cd /tmp/skeleton-smoke-test && scripts/checks.bat   # o checks.sh
+```
+
+`.github/workflows/docker-publish.yml` è l'unico file copiato 1:1 senza rendering
+(usa `${{ }}` per le espressioni GitHub Actions, che collide con la sintassi
+Jinja di default — per questo il meccanismo di rendering è opt-in per-file via
+suffisso `.jinja`, non globale).
+
 ## Dipendenze condivise
 
 `env_resolver`, `auth`, `config`, `logging_utils`, `timezone_utils`, `metrics`

@@ -13,8 +13,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 
 TRUSTED_PROXIES = {ip.strip() for ip in os.getenv("TRUSTED_PROXIES", "127.0.0.1").split(",") if ip.strip()}
 
-# Rename "app_skeleton_session" to something project-specific when deriving a new app.
-auth = AuthManager(auth_file=DATA_DIR / "auth.json", cookie_name="app_skeleton_session", token_ttl=7 * 24 * 3600)
+auth = AuthManager(auth_file=DATA_DIR / "auth.json", cookie_name="{{ app_slug }}_session", token_ttl=7 * 24 * 3600)
 
 router = APIRouter()
 

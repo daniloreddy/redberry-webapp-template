@@ -1,7 +1,7 @@
 services:
-  app-skeleton:
-    image: ghcr.io/daniloreddy/app-skeleton:latest
-    container_name: app-skeleton
+  {{ app_slug }}:
+    image: ghcr.io/{{ github_owner }}/{{ app_slug }}:latest
+    container_name: {{ app_slug }}
     restart: unless-stopped
     ports:
       - "${HOST:-127.0.0.1}:${PORT:-8000}:${PORT:-8000}"  # HOST=0.0.0.0 per LAN / reverse proxy / esposizione diretta

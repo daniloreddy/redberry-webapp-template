@@ -83,7 +83,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="App Skeleton",
+    title="{{ app_name }}",
     lifespan=_lifespan,
     docs_url="/docs" if DEV else None,
     redoc_url="/redoc" if DEV else None,

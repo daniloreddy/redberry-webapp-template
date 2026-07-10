@@ -11,7 +11,7 @@ from redberry_webkit.timezone_utils import resolve_timezone
 from app.config import config
 from app.metrics import metrics
 
-APP_NAME = "App Skeleton"
+APP_NAME = "{{ app_name }}"
 DISPLAY_TZ = resolve_timezone(os.getenv("TZ", "UTC"))
 
 NavItem = tuple[str, str, str]

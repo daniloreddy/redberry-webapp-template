@@ -1,7 +1,7 @@
 services:
-  app-skeleton:
+  {{ app_slug }}:
     build: .
-    container_name: app-skeleton-dev
+    container_name: {{ app_slug }}-dev
     restart: "no"
     ports:
       - "${PORT:-8000}:${PORT:-8000}"
