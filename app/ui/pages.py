@@ -1,0 +1,169 @@
+from __future__ import annotations
+
+import os
+from datetime import datetime
+from typing import Any
+
+from nicegui import app as ng_app
+from nicegui import ui
+from redberry_webkit.timezone_utils import resolve_timezone
+
+from app.config import config
+from app.metrics import metrics
+
+APP_NAME = "App Skeleton"
+DISPLAY_TZ = resolve_timezone(os.getenv("TZ", "UTC"))
+
+NavItem = tuple[str, str, str]
+NAV_ITEMS: list[NavItem] = [
+    ("Dashboard", "dashboard", "/"),
+    ("Config", "settings", "/config"),
+]
+
+
+def _page_setup(section_title: str) -> Any:
+    ui.page_title(f"{section_title} — {APP_NAME}")
+    return ui.dark_mode(value=ng_app.storage.user.get("dark_mode", True))
+
+
+def _header(current: str, dark: Any) -> None:
+    with ui.header().classes("bg-primary text-white items-center q-px-md q-gutter-sm"):
+        ui.label(current).classes("text-h6 text-weight-bold col")
+
+        for label, icon, path in NAV_ITEMS:
+            if label.lower() != current.lower():
+                ui.button(icon=icon, on_click=lambda p=path: ui.navigate.to(p)).props(
+                    "flat color=white round"
+                ).tooltip(label)
+
+        def _toggle_dark() -> None:
+            dark.toggle()
+            ng_app.storage.user["dark_mode"] = dark.value
+
+        ui.button(icon="contrast", on_click=_toggle_dark).props("flat color=white round").tooltip("Dark / Light")
+        ui.button(
+            icon="logout", on_click=lambda: ui.run_javascript("window.location.href='/auth/logout'")
+        ).props("flat color=white round").tooltip("Logout")
+        ui.label(APP_NAME).classes("text-body2").style("opacity:0.6")
+
+
+def _footer() -> None:
+    with ui.footer().classes("bg-primary text-white q-px-md q-py-xs row items-center"):
+        ui.label(APP_NAME).classes("text-caption col").style("opacity:0.6")
+
+
+def _metric_card(label: str, value: str, color: str = "primary") -> None:
+    with ui.card().classes("q-pa-md col"):
+        ui.label(label).classes("text-caption text-grey-6 text-uppercase")
+        ui.label(value).classes(f"text-h5 text-weight-bold text-{color}")
+
+
+@ui.page("/")
+async def dashboard_page() -> None:
+    dark = _page_setup("Dashboard")
+    _header("Dashboard", dark)
+
+    with ui.column().classes("q-pa-md full-width"):
+        metrics_row = ui.row().classes("full-width q-gutter-md")
+        table_container = ui.column().classes("full-width")
+        refresh_lbl = ui.label("").classes("text-caption text-grey-6").style("text-align:right; width:100%")
+
+        async def _render() -> None:
+            stats = await metrics.get_stats()
+            metrics_row.clear()
+            with metrics_row:
+                _metric_card("Richieste totali", str(stats["total_requests"]), "primary")
+                _metric_card("Richieste ok", str(stats["ok_requests"]), "positive")
+                _metric_card(
+                    "Errori", str(stats["error_requests"]), "negative" if stats["error_requests"] else "primary"
+                )
+                _metric_card("Durata media (s)", f"{stats['avg_duration_s']:.2f}", "info")
+
+            history = await metrics.get_history()
+            table_container.clear()
+            with table_container:
+                rows = [
+                    {
+                        "id": str(index),
+                        "timestamp": datetime.fromtimestamp(record.timestamp, tz=DISPLAY_TZ).strftime("%H:%M:%S"),
+                        "status": record.status,
+                        "duration_s": f"{record.duration_s:.2f}",
+                        "error_message": record.error_message or "",
+                    }
+                    for index, record in enumerate(history)
+                ]
+                tbl = ui.table(
+                    columns=[
+                        {"name": "timestamp", "label": "Ora", "field": "timestamp"},
+                        {"name": "status", "label": "Status", "field": "status"},
+                        {"name": "duration_s", "label": "Durata (s)", "field": "duration_s"},
+                        {"name": "error_message", "label": "Errore", "field": "error_message"},
+                    ],
+                    rows=rows,
+                    row_key="id",
+                ).classes("full-width")
+                tbl.add_slot(
+                    "body-cell-status",
+                    """
+                    <q-td :props="props">
+                      <q-badge :color="props.value === 'ok' ? 'positive' : 'negative'" :label="props.value" />
+                    </q-td>
+                    """,
+                )
+
+            refresh_enabled = config.get_bool("REFRESH_ENABLED")
+            interval = config.get_int("REFRESH_INTERVAL", 5)
+            if refresh_enabled:
+                now = datetime.now(DISPLAY_TZ).strftime("%H:%M:%S")
+                refresh_lbl.set_text(f"Aggiornato: {now} · auto-refresh {interval}s")
+            else:
+                refresh_lbl.set_text("auto-refresh disabilitato")
+
+        await _render()
+        if config.get_bool("REFRESH_ENABLED"):
+            ui.timer(config.get_int("REFRESH_INTERVAL", 5), _render)
+
+    _footer()
+
+
+@ui.page("/config")
+def config_page() -> None:
+    dark = _page_setup("Config")
+    _header("Config", dark)
+
+    with ui.column().classes("q-pa-md full-width"):
+        cur = config.get_public()
+
+        with ui.card().classes("q-pa-md full-width"):
+            ui.label("Interfaccia").classes("text-caption text-grey-6 text-uppercase")
+            refresh_switch = ui.switch(
+                "Auto-refresh dashboard", value=cur.get("REFRESH_ENABLED", "true").lower() in ("true", "1", "yes")
+            )
+            ui.badge("hot-reload").props("color=positive")
+            interval_input = ui.number(
+                "Intervallo auto-refresh (s)", value=int(cur.get("REFRESH_INTERVAL", "5") or 5), min=1
+            ).classes("full-width")
+
+        with ui.card().classes("q-pa-md full-width"):
+            ui.label("API").classes("text-caption text-grey-6 text-uppercase")
+            rate_limit_input = ui.input("Rate limit (slowapi, es. 20/minute)", value=cur.get("RATE_LIMIT", "")).props(
+                'hint="Applicato ad ogni richiesta, hot-reload senza restart"'
+            ).classes("full-width")
+
+        # Un progetto derivato aggiunge qui altre card/campi per le proprie chiavi
+        # di config estese (vedi app/config.py), seguendo lo stesso pattern sopra:
+        # leggere da cur.get(...), scrivere via config.update_many({...}) al salvataggio.
+
+        def _save() -> None:
+            config.update_many(
+                {
+                    "REFRESH_ENABLED": "true" if refresh_switch.value else "false",
+                    "REFRESH_INTERVAL": str(int(interval_input.value or 5)),
+                    "RATE_LIMIT": rate_limit_input.value,
+                }
+            )
+            ui.notify("Configurazione salvata", color="positive")
+
+        ui.button("Salva", on_click=_save).props("color=primary")
+
+    _footer()

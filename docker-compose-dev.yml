@@ -1,0 +1,15 @@
+services:
+  app-skeleton:
+    build: .
+    container_name: app-skeleton-dev
+    restart: "no"
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=${TZ:-UTC}
+      - PORT=${PORT:-8000}
+      - ENV_FILE=/app/hostcfg/.env
+    volumes:
+      - .:/app/hostcfg
+      - ./data:/app/data

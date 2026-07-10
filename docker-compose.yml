@@ -1,0 +1,15 @@
+services:
+  app-skeleton:
+    image: ghcr.io/daniloreddy/app-skeleton:latest
+    container_name: app-skeleton
+    restart: unless-stopped
+    ports:
+      - "${HOST:-127.0.0.1}:${PORT:-8000}:${PORT:-8000}"  # HOST=0.0.0.0 per LAN / reverse proxy / esposizione diretta
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=${TZ:-UTC}
+      - PORT=${PORT:-8000}
+      - ENV_FILE=/app/hostcfg/.env
+    volumes:
+      - .:/app/hostcfg
+      - ./data:/app/data
