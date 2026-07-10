@@ -40,12 +40,21 @@ def isolated_auth(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AuthManage
 def _default_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     # tests must not depend on whatever RATE_LIMIT happens to be set in the real .env
     monkeypatch.setitem(config._cache, "RATE_LIMIT", "20/minute")
+    # the limiter's in-memory hit counts persist across tests (same "testclient" key) —
+    # reset before each test so one test's requests can't push another into a 429
+    main_module.limiter.reset()
 
 
 def test_health() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_root_redirects_to_ui() -> None:
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/ui/"
 
 
 def test_dashboard_requires_auth_redirects_to_login() -> None:

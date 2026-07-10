@@ -90,7 +90,8 @@ app = FastAPI(
     openapi_url="/openapi.json" if DEV else None,
 )
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]  # slowapi lacks precise stubs for this handler signature
+# slowapi lacks precise stubs for this handler signature, hence the ignore below.
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 app.add_middleware(SlowAPIMiddleware)
 app.include_router(ui_router)
 
@@ -115,6 +116,11 @@ async def _auth_gate(request: Request, call_next: RequestResponseEndpoint) -> Re
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/")
+async def root() -> RedirectResponse:
+    return RedirectResponse(url="/ui/")
 
 
 @app.get("/api/v1/example")
