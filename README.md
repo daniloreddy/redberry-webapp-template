@@ -1,4 +1,4 @@
-# App Skeleton
+# Redberry Webapp Template
 
 Base riusabile per applicazioni web Python: FastAPI/uvicorn + dashboard NiceGUI,
 auth cookie/JWT, config runtime hot-reloadable, rate limiting, metriche persistite
@@ -31,9 +31,9 @@ restare bloccato alla copia iniziale.
    ```
 2. Genera il nuovo progetto:
    ```bash
-   copier copy https://github.com/daniloreddy/redberry-app-skeleton.git percorso/nuovo-progetto
+   copier copy https://github.com/daniloreddy/redberry-webapp-template.git percorso/nuovo-progetto
    # oppure, da un checkout locale dello scaffold:
-   copier copy C:/redberry/src/python/redberry-app-skeleton percorso/nuovo-progetto
+   copier copy C:/redberry/src/python/redberry-webapp-template percorso/nuovo-progetto
    ```
    Copier chiede `app_name` (es. "Mail Manager"), `app_slug` (default derivato
    automaticamente, usato per cookie/Docker) e `github_owner`. I valori sostituiscono

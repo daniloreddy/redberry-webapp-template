@@ -147,7 +147,7 @@ ui.run_with(app, mount_path="/ui", storage_secret=auth.ui_storage_secret)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="App Skeleton — FastAPI + NiceGUI base template")
+    parser = argparse.ArgumentParser(description="{{ app_name }} — FastAPI + NiceGUI web app")
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--host", type=str, default=HOST)
     parser.add_argument("--dev", action=argparse.BooleanOptionalAction, default=DEV)

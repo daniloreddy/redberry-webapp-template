@@ -1,4 +1,4 @@
-# App Skeleton
+# Redberry Webapp Template
 
 Scaffold riusabile, non un prodotto. Punto di partenza per nuovi progetti
 FastAPI + NiceGUI — vedi `README.md` per la checklist di derivazione.
