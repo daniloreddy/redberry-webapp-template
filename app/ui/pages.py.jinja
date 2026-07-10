@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
@@ -26,30 +27,48 @@ def _page_setup(section_title: str) -> Any:
     return ui.dark_mode(value=ng_app.storage.user.get("dark_mode", True))
 
 
-def _header(current: str, dark: Any) -> None:
+def _header(
+    page_title: str,
+    nav_items: list[NavItem],
+    current: str = "",
+    *,
+    dark: Any = None,
+    extra_actions: Callable[[], None] | None = None,
+) -> None:
     with ui.header().classes("bg-primary text-white items-center q-px-md q-gutter-sm"):
-        ui.label(current).classes("text-h6 text-weight-bold col")
+        ui.label(page_title).classes("text-h6 text-weight-bold col")
 
-        for label, icon, path in NAV_ITEMS:
+        for label, icon, path in nav_items:
             if label.lower() != current.lower():
                 ui.button(icon=icon, on_click=lambda p=path: ui.navigate.to(p)).props(
                     "flat color=white round"
                 ).tooltip(label)
 
-        def _toggle_dark() -> None:
-            dark.toggle()
-            ng_app.storage.user["dark_mode"] = dark.value
+        if extra_actions is not None:
+            extra_actions()
 
-        ui.button(icon="contrast", on_click=_toggle_dark).props("flat color=white round").tooltip("Dark / Light")
-        ui.button(
-            icon="logout", on_click=lambda: ui.run_javascript("window.location.href='/auth/logout'")
-        ).props("flat color=white round").tooltip("Logout")
+        if dark is not None:
+
+            def _toggle_dark() -> None:
+                dark.toggle()
+                ng_app.storage.user["dark_mode"] = dark.value
+
+            ui.button(icon="contrast", on_click=_toggle_dark).props("flat color=white round").tooltip("Dark / Light")
+
         ui.label(APP_NAME).classes("text-body2").style("opacity:0.6")
 
 
-def _footer() -> None:
+def _logout_action() -> None:
+    ui.button(
+        icon="logout", on_click=lambda: ui.run_javascript("window.location.href='/auth/logout'")
+    ).props("flat color=white round").tooltip("Logout")
+
+
+def _footer(right_content: str = "") -> None:
     with ui.footer().classes("bg-primary text-white q-px-md q-py-xs row items-center"):
         ui.label(APP_NAME).classes("text-caption col").style("opacity:0.6")
+        if right_content:
+            ui.label(right_content).classes("text-body2 text-weight-bold")
 
 
 def _metric_card(label: str, value: str, color: str = "primary") -> None:
@@ -61,7 +80,7 @@ def _metric_card(label: str, value: str, color: str = "primary") -> None:
 @ui.page("/")
 async def dashboard_page() -> None:
     dark = _page_setup("Dashboard")
-    _header("Dashboard", dark)
+    _header("Dashboard", NAV_ITEMS, current="Dashboard", dark=dark, extra_actions=_logout_action)
 
     with ui.column().classes("q-pa-md full-width"):
         metrics_row = ui.row().classes("full-width q-gutter-md")
@@ -129,7 +148,7 @@ async def dashboard_page() -> None:
 @ui.page("/config")
 def config_page() -> None:
     dark = _page_setup("Config")
-    _header("Config", dark)
+    _header("Config", NAV_ITEMS, current="Config", dark=dark, extra_actions=_logout_action)
 
     with ui.column().classes("q-pa-md full-width"):
         cur = config.get_public()

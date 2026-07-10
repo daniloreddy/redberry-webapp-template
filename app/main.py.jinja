@@ -10,6 +10,7 @@ import argparse  # noqa: E402
 import asyncio  # noqa: E402
 import logging  # noqa: E402
 import os  # noqa: E402
+import secrets  # noqa: E402
 import time  # noqa: E402
 from collections.abc import AsyncIterator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
@@ -17,8 +18,9 @@ from logging.handlers import RotatingFileHandler  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import uvicorn  # noqa: E402
-from fastapi import FastAPI, Request, Response  # noqa: E402
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status  # noqa: E402
 from fastapi.responses import RedirectResponse  # noqa: E402
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer  # noqa: E402
 from nicegui import ui  # noqa: E402
 from redberry_webkit.auth import client_ip, purge_loop  # noqa: E402
 from redberry_webkit.logging_utils import CredentialFilter  # noqa: E402
@@ -64,6 +66,27 @@ def _rate_limit_key(request: Request) -> str:
 
 
 limiter = Limiter(key_func=_rate_limit_key)
+
+_API_TOKENS = {t.strip() for t in os.getenv("API_TOKENS", "").split(",") if t.strip()}
+_security = HTTPBearer(auto_error=False)
+
+
+def verify_api_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_security),
+) -> str | None:
+    """Add as Depends(verify_api_token) to any route outside /ui that needs protecting.
+    No-op if API_TOKENS isn't configured — bearer auth is opt-in, not mandatory.
+    Routes meant to stay public (/health, ...) never get this Depends."""
+    if _API_TOKENS:
+        if credentials is None or not any(
+            secrets.compare_digest(credentials.credentials, t) for t in _API_TOKENS
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or missing API token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    return credentials.credentials if credentials else None
 
 
 async def _config_reload_loop(interval_s: int) -> None:
@@ -125,8 +148,11 @@ async def root() -> RedirectResponse:
 
 @app.get("/api/v1/example")
 @limiter.limit(lambda: config.get("RATE_LIMIT", "20/minute"))
-async def example_endpoint(request: Request, name: str = "world") -> dict[str, str]:
-    """Placeholder endpoint — replace with the project's real API, keep the rate-limit decorator pattern."""
+async def example_endpoint(
+    request: Request, name: str = "world", token: str | None = Depends(verify_api_token)
+) -> dict[str, str]:
+    """Placeholder endpoint — replace with the project's real API, keep the rate-limit
+    decorator and the Depends(verify_api_token) pattern."""
     start = time.monotonic()
     try:
         message = greet(name)

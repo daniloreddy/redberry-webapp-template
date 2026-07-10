@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import app.main as main_module
+import app.ui.router as router_module
 import pytest
 from fastapi.testclient import TestClient
 from redberry_webkit.auth import AuthManager
 from redberry_webkit.metrics import MetricsStore
 
-import app.main as main_module
-import app.ui.router as router_module
 from app.config import config
 
 client = TestClient(main_module.app)
