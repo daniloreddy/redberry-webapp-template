@@ -37,6 +37,12 @@ Bugfix/feature nel pacchetto → nuovo tag semver nel repo `redberry-webkit` →
 bump manuale del pin qui. Prima di reimplementare uno di questi moduli da zero,
 controllare se `redberry-webkit` lo copre già.
 
+`AuthManager.verify_password()` (redberry-webkit ≥v0.2.0, scrypt N=131072) è
+sincrona e costa ~150-250ms/~128MB per chiamata — in `app/ui/router.py.jinja`
+va sempre invocata via `asyncio.to_thread(...)`, mai inline nell'handler async
+`/auth/login` (bloccherebbe l'event loop). Pattern già cablato nel template —
+mantenerlo in ogni personalizzazione del login flow.
+
 ## Cosa va in redberry-webkit vs cosa resta qui
 
 - **redberry-webkit**: logica pura, nessun import FastAPI/NiceGUI, identica a
