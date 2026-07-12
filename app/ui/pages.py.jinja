@@ -18,7 +18,7 @@ DISPLAY_TZ = resolve_timezone(os.getenv("TZ", "UTC"))
 NavItem = tuple[str, str, str]
 NAV_ITEMS: list[NavItem] = [
     ("Dashboard", "dashboard", "/"),
-    ("Config", "settings", "/config"),
+    ("Impostazioni", "settings", "/config"),
 ]
 
 
@@ -53,7 +53,7 @@ def _header(
                 dark.toggle()
                 ng_app.storage.user["dark_mode"] = dark.value
 
-            ui.button(icon="contrast", on_click=_toggle_dark).props("flat color=white round").tooltip("Dark / Light")
+            ui.button(icon="contrast", on_click=_toggle_dark).props("flat color=white round").tooltip("Tema chiaro/scuro")
 
         ui.label(APP_NAME).classes("text-body2").style("opacity:0.6")
 
@@ -61,7 +61,7 @@ def _header(
 def _logout_action() -> None:
     ui.button(
         icon="logout", on_click=lambda: ui.run_javascript("window.location.href='/auth/logout'")
-    ).props("flat color=white round").tooltip("Logout")
+    ).props("flat color=white round").tooltip("Esci")
 
 
 def _footer(right_content: str = "") -> None:
@@ -147,8 +147,8 @@ async def dashboard_page() -> None:
 
 @ui.page("/config")
 def config_page() -> None:
-    dark = _page_setup("Config")
-    _header("Config", NAV_ITEMS, current="Config", dark=dark, extra_actions=_logout_action)
+    dark = _page_setup("Impostazioni")
+    _header("Impostazioni", NAV_ITEMS, current="Impostazioni", dark=dark, extra_actions=_logout_action)
 
     with ui.column().classes("q-pa-md full-width"):
         cur = config.get_public()
