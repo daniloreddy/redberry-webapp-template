@@ -120,7 +120,7 @@ app.include_router(ui_router)
 
 _UI_PREFIX = "/ui"
 _LOGIN_PATHS = {"/login", "/auth/login", "/auth/logout"}
-_UI_BYPASS_PREFIXES = (f"{_UI_PREFIX}/socket.io",)
+_UI_BYPASS_PREFIXES = (f"{_UI_PREFIX}/_nicegui",)
 
 
 @app.middleware("http")
