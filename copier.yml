@@ -24,6 +24,9 @@ _exclude:
   - ".nicegui"
   - "tools"
   - "venv"
+  - ".claude"
+  - "scripts/align_to_template.py"
+  - "REPORT.md"
 
 _envops:
   keep_trailing_newline: true
