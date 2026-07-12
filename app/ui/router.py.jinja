@@ -12,6 +12,7 @@ STATIC_DIR = PROJECT_ROOT / "static"
 DATA_DIR = PROJECT_ROOT / "data"
 
 TRUSTED_PROXIES = {ip.strip() for ip in os.getenv("TRUSTED_PROXIES", "127.0.0.1").split(",") if ip.strip()}
+_FORCE_SECURE_COOKIE = os.getenv("AUTH_SECURE_COOKIE", "0").strip().lower() in ("1", "true", "yes")
 
 auth = AuthManager(auth_file=DATA_DIR / "auth.json", cookie_name="{{ app_slug }}_session", token_ttl=7 * 24 * 3600)
 
@@ -51,14 +52,19 @@ async def auth_login(request: Request, password: str = Form(...)) -> RedirectRes
         token,
         httponly=True,
         samesite="strict",
-        secure=is_secure_context(request.headers),
+        secure=_FORCE_SECURE_COOKIE or is_secure_context(request.headers),
         max_age=auth.token_ttl,
     )
     return response
 
 
 @router.get("/auth/logout")
-async def auth_logout() -> RedirectResponse:
+async def auth_logout(request: Request) -> RedirectResponse:
     response = RedirectResponse(url="/login", status_code=303)
-    response.delete_cookie(auth.cookie_name)
+    response.delete_cookie(
+        auth.cookie_name,
+        httponly=True,
+        samesite="strict",
+        secure=_FORCE_SECURE_COOKIE or is_secure_context(request.headers),
+    )
     return response

@@ -139,8 +139,23 @@ async def dashboard_page() -> None:
                 refresh_lbl.set_text("auto-refresh disabilitato")
 
         await _render()
-        if config.get_bool("REFRESH_ENABLED"):
-            ui.timer(config.get_int("REFRESH_INTERVAL", 5), _render)
+
+        # 1s tick instead of a timer built from the interval at page-load time — so a
+        # REFRESH_INTERVAL/REFRESH_ENABLED change saved from the Config page takes effect
+        # on this already-open page without a manual reload.
+        _elapsed_s = 0.0
+
+        async def _tick() -> None:
+            nonlocal _elapsed_s
+            if not config.get_bool("REFRESH_ENABLED"):
+                refresh_lbl.set_text("auto-refresh disabilitato")
+                return
+            _elapsed_s += 1.0
+            if _elapsed_s >= config.get_int("REFRESH_INTERVAL", 5):
+                _elapsed_s = 0.0
+                await _render()
+
+        ui.timer(1.0, _tick)
 
     _footer()
 
