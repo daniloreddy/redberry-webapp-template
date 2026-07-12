@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 
@@ -40,7 +41,11 @@ async def auth_login(request: Request, password: str = Form(...)) -> RedirectRes
     if auth.is_ip_blocked(ip):
         return RedirectResponse(url="/login?error=blocked", status_code=303)
 
-    success = auth.verify_password(password)
+    # scrypt at redberry_webkit's current cost (N=131072) takes ~150-250ms and allocates
+    # ~128MB — running it inline would block the event loop for that whole window on
+    # every login attempt, see @rules/uvicorn.md §5 for why CPU/memory-bound sync work
+    # in an async handler goes through to_thread instead.
+    success = await asyncio.to_thread(auth.verify_password, password)
     auth.record_attempt(ip, success=success)
     if not success:
         return RedirectResponse(url="/login?error=invalid", status_code=303)
