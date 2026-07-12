@@ -22,6 +22,8 @@ _exclude:
   - ".ruff_cache"
   - ".mypy_cache"
   - ".nicegui"
+  - "tools"
+  - "venv"
 
 _envops:
   keep_trailing_newline: true
