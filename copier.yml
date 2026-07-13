@@ -26,7 +26,10 @@ _exclude:
   - "venv"
   - ".claude"
   - "scripts/align_to_template.py"
+  - "tools"
   - "REPORT.md"
+  - "CLAUDE.md"
+  - "README.md"
 
 _envops:
   keep_trailing_newline: true
