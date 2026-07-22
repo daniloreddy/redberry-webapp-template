@@ -6,4 +6,4 @@ pydantic>=2.8.0
 pyjwt>=2.8.0
 python-multipart>=0.0.9
 slowapi>=0.1.9
-redberry-webkit @ git+https://github.com/daniloreddy/redberry-webkit.git@v0.2.1
+redberry-webkit @ git+https://github.com/daniloreddy/redberry-webkit.git@v0.2.2
