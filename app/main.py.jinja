@@ -76,7 +76,18 @@ def verify_api_token(
     """Add as Depends(verify_api_token) to any route outside /ui that needs protecting.
     No-op if API_TOKENS isn't configured — bearer auth is opt-in, not mandatory.
     Routes meant to stay public (/health, ...) never get this Depends."""
-    tokens = {t.strip() for t in config.get("API_TOKENS", "").split(",") if t.strip()}
+    raw_api_tokens = config.get("API_TOKENS", "")
+    tokens = {t.strip() for t in raw_api_tokens.split(",") if t.strip()}
+    if raw_api_tokens.strip() and not tokens:
+        # API_TOKENS is set but every entry was blank/whitespace after cleanup (e.g. " , ") —
+        # fail closed instead of silently treating auth as unconfigured, which would expose
+        # every Bearer-protected route with no error or log to flag the misconfiguration.
+        logger.error("API_TOKENS is set but contains no valid tokens; denying all API requests")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API authentication misconfigured",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if tokens:
         if credentials is None or not any(
             secrets.compare_digest(credentials.credentials, t) for t in tokens

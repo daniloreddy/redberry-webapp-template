@@ -21,6 +21,19 @@ copier copy . /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
 cd /tmp/skeleton-smoke-test && scripts/checks.bat   # o checks.sh
 ```
 
+**Attenzione — modifiche non committate**: `copier copy .` con una source path che è
+un repo git genera dall'ultimo commit (`HEAD`), **non** dal working tree — modifiche
+non ancora committate ai `.jinja` non compaiono nell'istanza generata, senza nessun
+avviso. Per validare modifiche non committate, copiare prima i file tracked in una
+directory temporanea senza `.git` e puntare Copier lì:
+
+```bash
+mkdir -p /tmp/webapp-template-src && cp -r --parents $(git ls-files) /tmp/webapp-template-src
+# poi sovrascrivere i .jinja modificati non ancora committati, es.:
+cp app/main.py.jinja /tmp/webapp-template-src/app/main.py.jinja
+copier copy /tmp/webapp-template-src /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
+```
+
 `.github/workflows/docker-publish.yml` è l'unico file copiato 1:1 senza rendering
 (usa `${{ }}` per le espressioni GitHub Actions, che collide con la sintassi
 Jinja di default — per questo il meccanismo di rendering è opt-in per-file via

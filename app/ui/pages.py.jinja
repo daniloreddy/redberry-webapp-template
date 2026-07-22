@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
@@ -14,6 +15,8 @@ from app.metrics import metrics
 
 APP_NAME = "{{ app_name }}"
 DISPLAY_TZ = resolve_timezone(os.getenv("TZ", "UTC"))
+
+_RATE_LIMIT_RE = re.compile(r"^\d+/(second|minute|hour|day)$")
 
 NavItem = tuple[str, str, str]
 NAV_ITEMS: list[NavItem] = [
@@ -189,11 +192,15 @@ def config_page() -> None:
         # leggere da cur.get(...), scrivere via config.update_many({...}) al salvataggio.
 
         def _save() -> None:
+            rate_limit = rate_limit_input.value.strip()
+            if not _RATE_LIMIT_RE.match(rate_limit):
+                ui.notify("Rate limit non valido (formato atteso: 20/minute)", color="negative")
+                return
             config.update_many(
                 {
                     "REFRESH_ENABLED": "true" if refresh_switch.value else "false",
                     "REFRESH_INTERVAL": str(int(interval_input.value or 5)),
-                    "RATE_LIMIT": rate_limit_input.value,
+                    "RATE_LIMIT": rate_limit,
                 }
             )
             ui.notify("Configurazione salvata", color="positive")
