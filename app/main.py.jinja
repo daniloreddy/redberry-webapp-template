@@ -103,7 +103,15 @@ def verify_api_token(
 async def _config_reload_loop(interval_s: int) -> None:
     while True:
         await asyncio.sleep(interval_s)
-        config.reload_if_stale()
+        try:
+            config.reload_if_stale()
+        except Exception:
+            # A transient .env read error (permissions blip, partial write from an editor,
+            # FS hiccup) must not end this loop — that would trip _crash_on_task_error and
+            # os._exit(1) the whole server. Config just keeps its last-known values until
+            # the next poll succeeds. CancelledError is BaseException, so shutdown still
+            # cancels this loop cleanly.
+            logger.warning("config reload failed, retrying on next poll", exc_info=True)
 
 
 def _crash_on_task_error(task: asyncio.Task[None]) -> None:
