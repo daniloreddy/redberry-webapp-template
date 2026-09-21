@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import threading
+import time
 from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from redberry_webkit.auth import AuthManager
@@ -115,3 +119,65 @@ def test_example_endpoint_rate_limited(client: TestClient, set_rate_limit: Calla
         assert client.get("/api/v1/example").status_code == 200
     response = client.get("/api/v1/example")
     assert response.status_code == 429
+
+
+def test_example_endpoint_rejects_non_ascii_bearer_token_with_401(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # secrets.compare_digest raises TypeError on non-ASCII str operands — verify_api_token
+    # must turn that into a 401, not let it surface as an unhandled 500. A plain str header
+    # value can't even reach the wire (httpx enforces ASCII client-side); raw bytes bypass
+    # that check the way a real non-conforming client would, and ASGI decodes header bytes
+    # as latin-1 server-side, so this reproduces the exact non-ASCII str verify_api_token sees.
+    env_file = tmp_path / ".env"
+    env_file.write_text("API_TOKENS=abc123\nRATE_LIMIT=20/minute\n")
+    test_config = ConfigManager(defaults=_DEFAULTS, secret_keys=_SECRET_KEYS, env_path=env_file)
+    monkeypatch.setattr(main_module, "config", test_config)
+
+    headers = httpx.Headers([("Authorization", "Bearer café".encode())])
+    response = client.get("/api/v1/example", headers=headers)
+    assert response.status_code == 401
+
+
+def test_login_semaphore_caps_concurrent_verify(client: TestClient, isolated_auth: AuthManager) -> None:
+    # A burst of concurrent /auth/login requests must never run more than
+    # _LOGIN_MAX_CONCURRENT scrypt verifications in parallel — that cap is what bounds
+    # worst-case memory (N=131072 -> ~128MB/verify) under an unauthenticated flood.
+    isolated_auth.set_password("test-password-123")
+    lock = threading.Lock()
+    concurrent = 0
+    max_concurrent = 0
+
+    def _slow_verify(password: str) -> bool:
+        nonlocal concurrent, max_concurrent
+        with lock:
+            concurrent += 1
+            max_concurrent = max(max_concurrent, concurrent)
+        time.sleep(0.3)
+        with lock:
+            concurrent -= 1
+        return True
+
+    isolated_auth.verify_password = _slow_verify  # type: ignore[method-assign]
+
+    workers = router_module._LOGIN_MAX_CONCURRENT + 4
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [
+            pool.submit(client.post, "/auth/login", data={"password": "x"}, follow_redirects=False)
+            for _ in range(workers)
+        ]
+        for future in futures:
+            assert future.result().status_code == 303
+
+    assert max_concurrent <= router_module._LOGIN_MAX_CONCURRENT
+
+
+def test_login_verify_timeout_returns_503(
+    client: TestClient, isolated_auth: AuthManager, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    isolated_auth.set_password("test-password-123")
+    monkeypatch.setattr(router_module, "_LOGIN_VERIFY_TIMEOUT_S", 0.05)
+    isolated_auth.verify_password = lambda password: time.sleep(0.3) or True  # type: ignore[method-assign]
+
+    response = client.post("/auth/login", data={"password": "test-password-123"})
+    assert response.status_code == 503

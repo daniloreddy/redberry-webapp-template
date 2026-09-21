@@ -47,13 +47,31 @@ pacchetto pip condiviso. Pin in `requirements.txt`:
 `redberry-webkit @ git+https://github.com/daniloreddy/redberry-webkit.git@vX.Y.Z`.
 
 Bugfix/feature nel pacchetto → nuovo tag semver nel repo `redberry-webkit` →
-bump manuale del pin qui. Prima di reimplementare uno di questi moduli da zero,
+bump manuale del pin qui.
+
+**Il pin è su un tag Git (`@vX.Y.Z`), non su uno SHA — rischio accettato,
+non un oversight.** Un tag è mutabile: chi ha accesso push a `redberry-webkit`
+può farlo puntare altrove senza che questo pin cambi. Con `redberry-webkit`
+pubblico e a controllo esclusivo del proprietario, l'unico scenario in cui
+questo importa è un account GitHub compromesso — a quel punto il problema è
+comunque più ampio del pin. Passare a uno SHA di commit eliminerebbe il
+rischio ma renderebbe ogni bump manuale meno leggibile (uno SHA non comunica
+la versione) per un guadagno marginale in questo contesto single-owner —
+deciso 2026-09-21, non da rivedere senza un cambio reale nel modello di minaccia
+(es. accesso push condiviso con terzi).
+
+Prima di reimplementare uno di questi moduli da zero,
 controllare se `redberry-webkit` lo copre già.
 
 `AuthManager.verify_password()` (redberry-webkit ≥v0.2.0, scrypt N=131072) è
 sincrona e costa ~150-250ms/~128MB per chiamata — in `app/ui/router.py.jinja`
 va sempre invocata via `asyncio.to_thread(...)`, mai inline nell'handler async
-`/auth/login` (bloccherebbe l'event loop). Pattern già cablato nel template —
+`/auth/login` (bloccherebbe l'event loop). La chiamata è inoltre avvolta in
+`_login_semaphore` (`_LOGIN_MAX_CONCURRENT = 4`) + `asyncio.wait_for(...,
+timeout=_LOGIN_VERIFY_TIMEOUT_S)` → 503 su timeout: senza cap, un burst di
+richieste non autenticate a `/auth/login` potrebbe spingere N × ~128MB di RAM
+in parallelo (nessun rate-limit slowapi su questa rotta, per design — vedi
+`is_global_limited()`/SEC-02 sopra). Pattern già cablato nel template —
 mantenerlo in ogni personalizzazione del login flow.
 
 ## Cosa va in redberry-webkit vs cosa resta qui

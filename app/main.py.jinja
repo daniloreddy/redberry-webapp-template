@@ -10,7 +10,6 @@ import argparse  # noqa: E402
 import asyncio  # noqa: E402
 import logging  # noqa: E402
 import os  # noqa: E402
-import secrets  # noqa: E402
 import time  # noqa: E402
 from collections.abc import AsyncIterator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
@@ -23,6 +22,7 @@ from fastapi.responses import RedirectResponse  # noqa: E402
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer  # noqa: E402
 from nicegui import ui  # noqa: E402
 from redberry_webkit.auth import client_ip, purge_loop  # noqa: E402
+from redberry_webkit.auth import verify_api_token as verify_bearer_token  # noqa: E402
 from redberry_webkit.logging_utils import CredentialFilter  # noqa: E402
 from slowapi import Limiter, _rate_limit_exceeded_handler  # noqa: E402
 from slowapi.errors import RateLimitExceeded  # noqa: E402
@@ -89,9 +89,11 @@ def verify_api_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     if tokens:
-        if credentials is None or not any(
-            secrets.compare_digest(credentials.credentials, t) for t in tokens
-        ):
+        # Delegate the actual comparison to redberry_webkit.auth.verify_api_token — the
+        # one maintained implementation (constant-time compare, non-ASCII-token-safe,
+        # see its own docstring/tests) instead of a second copy of the same logic here.
+        header = f"Bearer {credentials.credentials}" if credentials else ""
+        if not verify_bearer_token(header, tokens):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or missing API token",

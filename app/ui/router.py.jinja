@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request, status
 from fastapi.responses import FileResponse, RedirectResponse
 from redberry_webkit.auth import AuthManager, client_ip, is_secure_context
 
@@ -17,6 +17,14 @@ DATA_DIR = PROJECT_ROOT / "data"
 
 TRUSTED_PROXIES = {ip.strip() for ip in os.getenv("TRUSTED_PROXIES", "127.0.0.1").split(",") if ip.strip()}
 _FORCE_SECURE_COOKIE = os.getenv("AUTH_SECURE_COOKIE", "0").strip().lower() in ("1", "true", "yes")
+
+# Caps concurrent scrypt verifications (N=131072 -> ~128MB/~150-250ms each, see CLAUDE.md).
+# Unauthenticated /auth/login callers wait for a free slot instead of each spawning their
+# own thread — bounds worst-case memory to _LOGIN_MAX_CONCURRENT * ~128MB regardless of
+# how many login requests arrive at once (uvicorn.md §5 pattern, applied to the login path).
+_LOGIN_MAX_CONCURRENT = 4
+_LOGIN_VERIFY_TIMEOUT_S = 10
+_login_semaphore = asyncio.Semaphore(_LOGIN_MAX_CONCURRENT)
 
 auth = AuthManager(auth_file=DATA_DIR / "auth.json", cookie_name="{{ app_slug }}_session", token_ttl=7 * 24 * 3600)
 
@@ -50,8 +58,18 @@ async def auth_login(request: Request, password: str = Form(...)) -> RedirectRes
     # scrypt at redberry_webkit's current cost (N=131072) takes ~150-250ms and allocates
     # ~128MB — running it inline would block the event loop for that whole window on
     # every login attempt, see @rules/uvicorn.md §5 for why CPU/memory-bound sync work
-    # in an async handler goes through to_thread instead.
-    success = await asyncio.to_thread(auth.verify_password, password)
+    # in an async handler goes through to_thread instead. The semaphore additionally caps
+    # how many of these run at once, so a burst of unauthenticated attempts can't multiply
+    # into an unbounded memory spike (each waiting request just waits, no thread spawned).
+    async with _login_semaphore:
+        try:
+            success = await asyncio.wait_for(
+                asyncio.to_thread(auth.verify_password, password), timeout=_LOGIN_VERIFY_TIMEOUT_S
+            )
+        except TimeoutError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Login temporarily unavailable"
+            ) from exc
     auth.record_attempt(ip, success=success)
     if not success:
         return RedirectResponse(url="/login?error=invalid", status_code=303)

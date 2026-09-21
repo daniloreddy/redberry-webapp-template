@@ -145,4 +145,4 @@ data/               # auth.json, metrics.db, logs/ — gitignored
 
 ## Licenza
 
-Uso interno / non specificata.
+MIT — vedi [LICENSE](LICENSE).

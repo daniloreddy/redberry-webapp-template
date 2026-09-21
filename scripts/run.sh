@@ -12,4 +12,4 @@ if [ ! -d ".venv/lib/python3.12/site-packages/fastapi" ] && ! python -c "import 
     pip install -r requirements.txt
 fi
 
-python -m app.main "$@"
+exec python -m app.main "$@"
