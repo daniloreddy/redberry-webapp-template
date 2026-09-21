@@ -126,6 +126,13 @@ scripts/checks.sh
 
 Esegue `ruff check`, `mypy app` (strict) e `pytest` in sequenza.
 
+Per chi mantiene lo scaffold (non necessario nei progetti derivati):
+
+```bash
+python tools/check_drift.py                                   # verifica drift dei progetti derivati
+python scripts/align_to_template.py <path-progetto> --app-name "Nome progetto"  # report di allineamento
+```
+
 ## Struttura del progetto
 
 ```
