@@ -1,3 +1,3 @@
 # Redberry Webapp Template
 
-Istruzioni per agenti AI su questo repo: vedi [AGENTS.md](AGENTS.md).
+Instructions for AI agents working on this repo: see [AGENTS.md](AGENTS.md).

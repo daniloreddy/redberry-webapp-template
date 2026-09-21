@@ -1,71 +1,77 @@
 # Redberry Webapp Template
 
-Base riusabile per applicazioni web Python: FastAPI/uvicorn + dashboard NiceGUI,
-auth cookie/JWT, config runtime hot-reloadable, rate limiting, metriche persistite
-su SQLite. Non è un prodotto — è il punto di partenza per un progetto nuovo.
+Reusable base for Python web applications: FastAPI/uvicorn + NiceGUI
+dashboard, cookie/JWT auth, hot-reloadable runtime config, rate limiting,
+metrics persisted to SQLite. Not a product — it's the starting point for a
+new project.
 
-Le funzioni condivise (auth, config, env resolution, redazione log, timezone,
-metriche) vengono da [`redberry-webkit`](https://github.com/daniloreddy/redberry-webkit),
-pacchetto pip. Questo repo aggiunge solo il **cablaggio applicativo** attorno a
-quel pacchetto: `main.py`, routing, pagine NiceGUI, Docker, script.
+Shared functionality (auth, config, env resolution, log redaction,
+timezone, metrics) comes from
+[`redberry-webkit`](https://github.com/daniloreddy/redberry-webkit), a pip
+package. This repo only adds the **application wiring** around that
+package: `main.py`, routing, NiceGUI pages, Docker, scripts.
 
-## Funzionalità incluse
+## Included features
 
-- **Auth dashboard** (`/ui/*`) — cookie/JWT, login/logout, rate limit anti-bruteforce.
-- **Config runtime** (`/ui/config`) — switch/campi legati a `.env`, hot-reload senza restart.
-- **Rate limiting** (`slowapi`) su endpoint API, limite configurabile a runtime.
-- **Metriche** — storico richieste persistito su SQLite (`app/metrics.py`), mostrato in dashboard.
-- **Docker** — due compose file (prod/dev), bind-mount dati, workflow GHCR pronto.
+- **Dashboard auth** (`/ui/*`) — cookie/JWT, login/logout, anti-bruteforce rate limiting.
+- **Runtime config** (`/ui/config`) — switches/fields tied to `.env`, hot-reload without a restart.
+- **Rate limiting** (`slowapi`) on API endpoints, runtime-configurable limit.
+- **Metrics** — request history persisted to SQLite (`app/metrics.py`), shown in the dashboard.
+- **Docker** — two compose files (prod/dev), bind-mounted data, ready-made GHCR workflow.
 
-## Come partire da questo scaffold per un progetto nuovo
+## Starting a new project from this scaffold
 
-Questo repo è un template [Copier](https://copier.readthedocs.io/) — non si copia
-a mano. Copier tiene traccia (in `.copier-answers.yml`, generato nel progetto
-derivato) di quale versione dello scaffold è stata usata, così un fix successivo
-qui può essere riapplicato ai progetti già creati (`copier update`), invece di
-restare bloccato alla copia iniziale.
+This repo is a [Copier](https://copier.readthedocs.io/) template — it isn't
+copied by hand. Copier keeps track (in `.copier-answers.yml`, generated in
+the derived project) of which version of the scaffold was used, so a later
+fix here can be reapplied to already-created projects (`copier update`),
+instead of staying stuck at the initial copy.
 
-1. Installa Copier una volta sola (tool CLI, non dipendenza del progetto):
+1. Install Copier once (a CLI tool, not a project dependency):
    ```bash
-   pipx install copier   # o: pip install --user copier
+   pipx install copier   # or: pip install --user copier
    ```
-2. Genera il nuovo progetto:
+2. Generate the new project:
    ```bash
-   copier copy https://github.com/daniloreddy/redberry-webapp-template.git percorso/nuovo-progetto
-   # oppure, da un checkout locale dello scaffold:
-   copier copy C:/redberry/src/python/redberry-webapp-template percorso/nuovo-progetto
+   copier copy https://github.com/daniloreddy/redberry-webapp-template.git path/to/new-project
+   # or, from a local checkout of the scaffold:
+   copier copy C:/redberry/src/python/redberry-webapp-template path/to/new-project
    ```
-   Copier chiede `app_name` (es. "Mail Manager"), `app_slug` (default derivato
-   automaticamente, usato per cookie/Docker) e `github_owner`. I valori sostituiscono
-   tutti i riferimenti hardcoded (`APP_NAME`, `cookie_name`, nome servizio/immagine
-   Docker, `FastAPI(title=...)`, `static/login.html`) — nessun rename manuale.
-3. `cd percorso/nuovo-progetto && git init` (il template non include `.git`).
-4. Cancella `app/libs/example.py` (e il suo test) e aggiungi lì la logica vera del
-   progetto — moduli puri, senza import FastAPI/NiceGUI, testabili senza `TestClient`.
-5. Estendi `app/config.py`: aggiungi le chiavi runtime-editable specifiche del
-   progetto a `_DEFAULTS`/`_SECRET_KEYS` (nessuna sottoclasse necessaria — vedi
-   il commento nel file). Aggiungi i campi corrispondenti nella pagina Config
-   (`app/ui/pages.py`, `config_page()`), seguendo lo stesso pattern già presente.
-6. Sostituisci `GET /api/v1/example` in `app/main.py` con gli endpoint reali,
-   mantenendo il pattern `@limiter.limit(...)` + `metrics.record(...)`.
-7. Aggiorna `requirements.txt` con le dipendenze specifiche del progetto.
-8. Copia `.env.example` in `.env`, imposta la password: `python scripts/set_password.py`.
+   Copier asks for `app_name` (e.g. "Mail Manager"), `app_slug` (default
+   auto-derived, used for cookies/Docker) and `github_owner`. The values
+   replace every hardcoded reference (`APP_NAME`, `cookie_name`, Docker
+   service/image name, `FastAPI(title=...)`, `static/login.html`) — no
+   manual renaming needed.
+3. `cd path/to/new-project && git init` (the template doesn't include `.git`).
+4. Delete `app/libs/example.py` (and its test) and add the project's real
+   logic there — pure modules, no FastAPI/NiceGUI import, testable without
+   `TestClient`.
+5. Extend `app/config.py`: add the project's runtime-editable keys to
+   `_DEFAULTS`/`_SECRET_KEYS` (no subclassing needed — see the comment in
+   the file). Add the corresponding fields to the Config page
+   (`app/ui/pages.py`, `config_page()`), following the same existing
+   pattern.
+6. Replace `GET /api/v1/example` in `app/main.py` with the real endpoints,
+   keeping the `@limiter.limit(...)` + `metrics.record(...)` pattern.
+7. Update `requirements.txt` with the project's specific dependencies.
+8. Copy `.env.example` to `.env`, set the password: `python scripts/set_password.py`.
 
-### Aggiornare un progetto derivato quando lo scaffold cambia
+### Updating a derived project when the scaffold changes
 
-Dalla cartella del progetto derivato (richiede `.copier-answers.yml` committato,
-generato automaticamente al passo 2):
+From the derived project's directory (requires a committed
+`.copier-answers.yml`, generated automatically at step 2):
 
 ```bash
 copier update
 ```
 
-Copier calcola il diff tra la versione dello scaffold usata alla creazione e
-quella corrente, e lo riapplica al progetto — come un merge git. Conflitti su
-file personalizzati (es. `app/main.py` se hai aggiunto endpoint) vanno risolti
-a mano, marcati `.rej`/marker di conflitto nel file, stesso flusso di un merge.
+Copier computes the diff between the scaffold version used at creation and
+the current one, and reapplies it to the project — like a git merge.
+Conflicts on customized files (e.g. `app/main.py` if you added endpoints)
+need manual resolution, marked with `.rej`/conflict markers in the file,
+same flow as a merge.
 
-## Avvio rapido (locale)
+## Quick start (local)
 
 ```bash
 # Windows
@@ -75,46 +81,46 @@ scripts\run.bat --dev
 scripts/run.sh --dev
 ```
 
-Il primo avvio crea il virtual environment e installa le dipendenze. Copia
-`.env.example` in `.env` prima del primo avvio e imposta la password:
+The first run creates the virtual environment and installs dependencies.
+Copy `.env.example` to `.env` before the first run and set the password:
 
 ```bash
 python scripts/set_password.py
 ```
 
-Server su `http://127.0.0.1:8000`. Dashboard su `http://127.0.0.1:8000/ui` (richiede login).
+Server at `http://127.0.0.1:8000`. Dashboard at `http://127.0.0.1:8000/ui` (requires login).
 
-## Configurazione (`.env`)
+## Configuration (`.env`)
 
-Vedi `.env.example` per l'elenco completo. Variabili principali:
+See `.env.example` for the full list. Main variables:
 
-| Variabile | Default | Note |
+| Variable | Default | Notes |
 |---|---|---|
-| `HOST` | `127.0.0.1` | Bind locale. |
+| `HOST` | `127.0.0.1` | Local bind. |
 | `PORT` | `8000` | |
-| `DEV` | `false` | `true` abilita `--reload` uvicorn e riattiva `/docs`/`/redoc`. |
-| `TZ` | `UTC` | Fuso orario IANA per i timestamp mostrati in dashboard. |
-| `TRUSTED_PROXIES` | `127.0.0.1` | IP dei reverse proxy fidati per risolvere l'IP client reale. |
-| `AUTH_SECURE_COOKIE` | `0` | `1` forza il flag `Secure` sul cookie anche senza `X-Forwarded-Proto: https`. |
-| `API_TOKENS` | *(vuoto)* | Bearer token comma-separated per eventuali endpoint API fuori da `/ui`. |
-| `RATE_LIMIT` | `20/minute` | Limite (sintassi slowapi) sugli endpoint API — hot-reload, modificabile da `/ui/config`. |
-| `REFRESH_ENABLED` / `REFRESH_INTERVAL` | `true` / `5` | Auto-refresh dashboard — hot-reload, modificabile da `/ui/config`. |
-| `NICEGUI_STORAGE_PATH` | *(vuoto)* | Solo Docker: `/app/data/.nicegui` per persistere il tema dark/light tra restart. |
+| `DEV` | `false` | `true` enables uvicorn `--reload` and re-enables `/docs`/`/redoc`. |
+| `TZ` | `UTC` | IANA timezone for timestamps shown in the dashboard. |
+| `TRUSTED_PROXIES` | `127.0.0.1` | IPs of trusted reverse proxies, used to resolve the real client IP. |
+| `AUTH_SECURE_COOKIE` | `0` | `1` forces the `Secure` flag on the cookie even without `X-Forwarded-Proto: https`. |
+| `API_TOKENS` | *(empty)* | Comma-separated Bearer tokens for any API endpoints outside `/ui`. |
+| `RATE_LIMIT` | `20/minute` | Limit (slowapi syntax) on API endpoints — hot-reload, editable from `/ui/config`. |
+| `REFRESH_ENABLED` / `REFRESH_INTERVAL` | `true` / `5` | Dashboard auto-refresh — hot-reload, editable from `/ui/config`. |
+| `NICEGUI_STORAGE_PATH` | *(empty)* | Docker only: `/app/data/.nicegui` to persist the dark/light theme across restarts. |
 
 ## Docker
 
 ```bash
-# sviluppo (build locale)
+# development (local build)
 docker compose -f docker-compose-dev.yml up --build
 
-# produzione (immagine da GHCR)
+# production (image from GHCR)
 docker compose up -d
 ```
 
-Di default `docker-compose.yml` pubblica solo su `127.0.0.1`; imposta
-`HOST=0.0.0.0` in `.env` per esporre su LAN/reverse proxy.
+By default `docker-compose.yml` publishes only on `127.0.0.1`; set
+`HOST=0.0.0.0` in `.env` to expose it on a LAN/behind a reverse proxy.
 
-## Sviluppo
+## Development
 
 ```bash
 # Windows
@@ -124,32 +130,32 @@ scripts\checks.bat
 scripts/checks.sh
 ```
 
-Esegue `ruff check`, `mypy app` (strict) e `pytest` in sequenza.
+Runs `ruff check`, `mypy app` (strict) and `pytest` in sequence.
 
-Per chi mantiene lo scaffold (non necessario nei progetti derivati):
+For whoever maintains the scaffold (not needed in derived projects):
 
 ```bash
-python tools/check_drift.py                                   # verifica drift dei progetti derivati
-python scripts/align_to_template.py <path-progetto> --app-name "Nome progetto"  # report di allineamento
+python tools/check_drift.py                                   # check drift across derived projects
+python scripts/align_to_template.py <project-path> --app-name "Project name"  # alignment report
 ```
 
-## Struttura del progetto
+## Project structure
 
 ```
 app/
 ├── main.py         # FastAPI + lifespan (config reload, auth purge, metrics init) + auth gate +
-│                   # rate limiting + /health + mount NiceGUI + esempio endpoint
-├── config.py       # ConfigManager (redberry_webkit) con i default runtime-editable dello scaffold
-├── metrics.py      # MetricsStore (redberry_webkit) legato a data/metrics.db
-├── libs/           # logica pura specifica del progetto — example.py è un placeholder da sostituire
+│                   # rate limiting + /health + NiceGUI mount + example endpoint
+├── config.py       # ConfigManager (redberry_webkit) with the scaffold's runtime-editable defaults
+├── metrics.py      # MetricsStore (redberry_webkit) bound to data/metrics.db
+├── libs/           # project-specific pure logic — example.py is a placeholder to replace
 └── ui/
     ├── router.py   # /login /auth/login /auth/logout (AuthManager)
-    └── pages.py    # dashboard (metriche + storico) + pagina Config
-static/login.html   # pagina di login self-contained
+    └── pages.py    # dashboard (metrics + history) + Config page
+static/login.html   # self-contained login page
 scripts/            # run/checks (bat+sh), set_password.py
 data/               # auth.json, metrics.db, logs/ — gitignored
 ```
 
-## Licenza
+## License
 
-MIT — vedi [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
