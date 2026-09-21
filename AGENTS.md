@@ -44,10 +44,15 @@ per-file via the `.jinja` suffix, not global).
 ## Shared dependencies
 
 `env_resolver`, `auth`, `config`, `logging_utils`, `timezone_utils`,
-`metrics` live in
+`metrics`, `request_view` (request-table view-model: `RequestRow`,
+`request_rows_from_metrics()`, `REQUEST_TABLE_BASE_COLUMNS`,
+`STATUS_CELL_SLOT`, `request_meta()`) and `ui` (NiceGUI page chrome:
+`page()`, `header()`, `footer()`, `metric_card()`, `logout_action()`,
+`NavItem`) all live in
 [`redberry-webkit`](https://github.com/daniloreddy/redberry-webkit), a
 shared pip package. Pin in `requirements.txt`:
 `redberry-webkit @ git+https://github.com/daniloreddy/redberry-webkit.git@vX.Y.Z`.
+`app/ui/pages.py.jinja` imports both — see it for the reference wiring.
 
 Bugfix/feature in the package → new semver tag in the `redberry-webkit`
 repo → manual pin bump here.
@@ -80,11 +85,17 @@ into the template — keep it in every customization of the login flow.
 
 ## What goes in redberry-webkit vs what stays here
 
-- **redberry-webkit**: pure logic, no FastAPI/NiceGUI import, identical
-  regardless of the project (auth, config, metrics, credential redaction,
-  tz).
+- **redberry-webkit**: identical regardless of the project — auth, config,
+  metrics, credential redaction, tz (framework-free), plus the request-table
+  view-model (`request_view`) and the NiceGUI page chrome (`ui` — the one
+  module in the package that imports NiceGUI directly; see that package's
+  own `AGENTS.md` for why).
 - **This scaffold**: application wiring — routing, pages, `main.py` wiring,
-  Docker, scripts. Every derived project customizes it.
+  Docker, scripts. Every derived project customizes it. `app/ui/pages.py`
+  keeps only the page *content* (dashboard cards/table, Config form fields);
+  the chrome around it (`page()`, `metric_card()`, the status-badge slot,
+  `NavItem`) is imported, not hand-written — a scaffolded project extends
+  `NAV_ITEMS` and adds pages, it doesn't redefine `_header`/`_footer`.
 
 ## Extending `app/config.py`
 

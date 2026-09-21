@@ -14,6 +14,7 @@ from redberry_webkit.config import ConfigManager
 from redberry_webkit.metrics import MetricsStore
 
 import app.main as main_module
+import app.ui.pages as pages_module
 import app.ui.router as router_module
 from app.config import _DEFAULTS, _SECRET_KEYS
 
@@ -28,10 +29,16 @@ def client() -> Iterator[TestClient]:
 
 @pytest.fixture(autouse=True)
 async def _isolated_metrics(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # Tests must not write to the project's real data/metrics.db.
+    # Tests must not write to the project's real data/metrics.db. app/main.py and
+    # app/ui/pages.py each do `from app.metrics import metrics` — two independent name
+    # bindings captured at import time. Patching main_module alone leaves pages_module's
+    # binding pointed at the original (uninitialized-in-tests) singleton, so any test that
+    # renders a NiceGUI page hits the real metrics.db, or a fresh scaffold's db that has
+    # no `requests` table yet.
     store = MetricsStore(db_path=tmp_path / "metrics.db")
     await store.init_db()
     monkeypatch.setattr(main_module, "metrics", store)
+    monkeypatch.setattr(pages_module, "metrics", store)
 
 
 @pytest.fixture

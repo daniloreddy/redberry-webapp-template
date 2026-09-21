@@ -24,6 +24,7 @@ from nicegui import ui  # noqa: E402
 from redberry_webkit.auth import client_ip, purge_loop  # noqa: E402
 from redberry_webkit.auth import verify_api_token as verify_bearer_token  # noqa: E402
 from redberry_webkit.logging_utils import CredentialFilter  # noqa: E402
+from redberry_webkit.request_view import request_meta  # noqa: E402
 from slowapi import Limiter, _rate_limit_exceeded_handler  # noqa: E402
 from slowapi.errors import RateLimitExceeded  # noqa: E402
 from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
@@ -190,16 +191,25 @@ async def example_endpoint(
     """Placeholder endpoint — replace with the project's real API, keep the rate-limit
     decorator and the Depends(verify_api_token) pattern."""
     start = time.monotonic()
+    host = request.client.host if request.client else "unknown"
+    ip, user_agent = request_meta(request.headers, host, TRUSTED_PROXIES)
+    extra = {"client_ip": ip, "user_agent": user_agent}
     try:
         message = greet(name)
     except Exception as exc:  # placeholder: replace with the project's real error handling
         await metrics.record(
             MetricsRecord(
-                timestamp=time.time(), status="error", duration_s=time.monotonic() - start, error_message=str(exc)
+                timestamp=time.time(),
+                status="error",
+                duration_s=time.monotonic() - start,
+                error_message=str(exc),
+                extra=extra,
             )
         )
         raise
-    await metrics.record(MetricsRecord(timestamp=time.time(), status="ok", duration_s=time.monotonic() - start))
+    await metrics.record(
+        MetricsRecord(timestamp=time.time(), status="ok", duration_s=time.monotonic() - start, extra=extra)
+    )
     return {"message": message}
 
 
