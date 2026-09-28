@@ -87,7 +87,7 @@ async def auth_login(request: Request, password: str = Form(...)) -> RedirectRes
     return response
 
 
-@router.get("/auth/logout")
+@router.post("/auth/logout")
 async def auth_logout(request: Request) -> RedirectResponse:
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie(
