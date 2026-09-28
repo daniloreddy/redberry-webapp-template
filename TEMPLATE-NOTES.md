@@ -1,7 +1,59 @@
 # Redberry Webapp Template
 
 Reusable scaffold, not a product. Starting point for new FastAPI + NiceGUI
-projects — see `README.md` for the derivation checklist.
+projects.
+
+## Starting a new project from this scaffold
+
+This repo is a [Copier](https://copier.readthedocs.io/) template — it isn't
+copied by hand. Copier keeps track (in `.copier-answers.yml`, generated in
+the derived project) of which version of the scaffold was used, so a later
+fix here can be reapplied to already-created projects (`copier update`),
+instead of staying stuck at the initial copy.
+
+1. Install Copier once (a CLI tool, not a project dependency):
+   ```bash
+   pipx install copier   # or: pip install --user copier
+   ```
+2. Generate the new project:
+   ```bash
+   copier copy https://github.com/daniloreddy/redberry-webapp-template.git path/to/new-project
+   # or, from a local checkout of the scaffold:
+   copier copy C:/redberry/src/python/redberry-webapp-template path/to/new-project
+   ```
+   Copier asks for `app_name` (e.g. "Mail Manager"), `app_slug` (default
+   auto-derived, used for cookies/Docker) and `github_owner`. The values
+   replace every hardcoded reference (`APP_NAME`, `cookie_name`, Docker
+   service/image name, `FastAPI(title=...)`, `static/login.html`) — no
+   manual renaming needed.
+3. `cd path/to/new-project && git init` (the template doesn't include `.git`).
+4. Delete `app/libs/example.py` (and its test) and add the project's real
+   logic there — pure modules, no FastAPI/NiceGUI import, testable without
+   `TestClient`.
+5. Extend `app/config.py`: add the project's runtime-editable keys to
+   `_DEFAULTS`/`_SECRET_KEYS` (no subclassing needed — see the comment in
+   the file). Add the corresponding fields to the Config page
+   (`app/ui/pages.py`, `config_page()`), following the same existing
+   pattern.
+6. Replace `GET /api/v1/example` in `app/main.py` with the real endpoints,
+   keeping the `@limiter.limit(...)` + `metrics.record(...)` pattern.
+7. Update `requirements.txt` with the project's specific dependencies.
+8. Copy `.env.example` to `.env`, set the password: `python scripts/set_password.py`.
+
+### Updating a derived project when the scaffold changes
+
+From the derived project's directory (requires a committed
+`.copier-answers.yml`, generated automatically at step 2):
+
+```bash
+copier update
+```
+
+Copier computes the diff between the scaffold version used at creation and
+the current one, and reapplies it to the project — like a git merge.
+Conflicts on customized files (e.g. `app/main.py` if you added endpoints)
+need manual resolution, marked with `.rej`/conflict markers in the file,
+same flow as a merge.
 
 ## Copier template — this repo isn't directly runnable
 

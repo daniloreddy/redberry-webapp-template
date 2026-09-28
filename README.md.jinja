@@ -1,0 +1,102 @@
+# {{ app_name }}
+
+FastAPI/uvicorn + NiceGUI dashboard, cookie/JWT auth, hot-reloadable runtime
+config, rate limiting, metrics persisted to SQLite. Generato da
+[`redberry-webapp-template`](https://github.com/{{ github_owner }}/redberry-webapp-template)
+con [Copier](https://copier.readthedocs.io/). Vedi `AGENTS.md` per
+architettura e decisioni.
+
+Funzionalità condivise (auth, config, env resolution, log redaction,
+timezone, metrics) vengono da
+[`redberry-webkit`](https://github.com/daniloreddy/redberry-webkit) — questo
+repo aggiunge solo il wiring applicativo (`main.py`, routing, pagine
+NiceGUI, Docker, script).
+
+## Quick start (locale)
+
+```bash
+# Windows
+scripts\run.bat --dev
+
+# Linux / Mac
+scripts/run.sh --dev
+```
+
+Il primo avvio crea il virtualenv e installa le dipendenze. Copia
+`.env.example` in `.env` prima del primo avvio e imposta la password:
+
+```bash
+python scripts/set_password.py
+```
+
+Server su `http://127.0.0.1:8000`. Dashboard su `http://127.0.0.1:8000/ui`
+(richiede login).
+
+## Configurazione (`.env`)
+
+Vedi `.env.example` per l'elenco completo. Variabili principali:
+
+| Variabile | Default | Note |
+|---|---|---|
+| `HOST` | `127.0.0.1` | Bind locale. |
+| `PORT` | `8000` | |
+| `DEV` | `false` | `true` abilita `--reload` di uvicorn e riattiva `/docs`/`/redoc`. |
+| `TZ` | `UTC` | Fuso IANA per i timestamp mostrati in dashboard. |
+| `TRUSTED_PROXIES` | `127.0.0.1` | IP dei reverse proxy fidati, usati per risolvere l'IP client reale. |
+| `AUTH_SECURE_COOKIE` | `0` | `1` forza il flag `Secure` sul cookie anche senza `X-Forwarded-Proto: https`. |
+| `API_TOKENS` | *(vuoto)* | Bearer token comma-separated per eventuali endpoint API fuori da `/ui`. |
+| `RATE_LIMIT` | `20/minute` | Limite (sintassi slowapi) sugli endpoint API — hot-reload, editabile da `/ui/config`. |
+| `REFRESH_ENABLED` / `REFRESH_INTERVAL` | `true` / `5` | Auto-refresh dashboard — hot-reload, editabile da `/ui/config`. |
+| `NICEGUI_STORAGE_PATH` | *(vuoto)* | Solo Docker: `/app/data/.nicegui` per persistere il tema chiaro/scuro tra i restart. |
+
+## Docker
+
+```bash
+# sviluppo (build locale)
+docker compose -f docker-compose-dev.yml up --build
+
+# produzione (immagine da GHCR)
+docker compose up -d
+```
+
+Di default `docker-compose.yml` pubblica solo su `127.0.0.1`; imposta
+`HOST=0.0.0.0` in `.env` per esporlo su LAN/dietro reverse proxy.
+
+## Sviluppo
+
+```bash
+# Windows
+scripts\checks.bat
+
+# Linux / Mac
+scripts/checks.sh
+```
+
+Esegue `ruff check`, `mypy app` (strict) e `pytest` in sequenza.
+
+## Struttura del progetto
+
+```
+app/
+├── main.py         # FastAPI + lifespan (config reload, auth purge, metrics init) + auth gate +
+│                   # rate limiting + /health + mount NiceGUI + endpoint di esempio
+├── config.py       # ConfigManager (redberry_webkit) con i default runtime-editable dello scaffold
+├── metrics.py      # MetricsStore (redberry_webkit) su data/metrics.db
+├── libs/           # logica pura specifica del progetto — example.py è un placeholder da sostituire
+└── ui/
+    ├── router.py   # /login /auth/login /auth/logout (AuthManager)
+    └── pages.py    # dashboard (metriche + storico) + pagina Config
+static/login.html   # pagina di login self-contained
+scripts/            # run/checks (bat+sh), set_password.py
+data/               # auth.json, metrics.db, logs/ — gitignored
+```
+
+## Allineamento al template
+
+Questo progetto nasce da `redberry-webapp-template` via Copier. Per
+propagare aggiornamenti del template: `copier update --defaults` dalla
+root del progetto (richiede `.copier-answers.yml`, già presente).
+
+## Licenza
+
+MIT — vedi [LICENSE](LICENSE).

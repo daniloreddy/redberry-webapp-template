@@ -29,7 +29,6 @@ _exclude:
   - "tools"
   - "REPORT.md"
   - "TEMPLATE-NOTES.md"
-  - "README.md"
 
 _envops:
   keep_trailing_newline: true
