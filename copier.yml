@@ -28,8 +28,7 @@ _exclude:
   - "scripts/align_to_template.py"
   - "tools"
   - "REPORT.md"
-  - "CLAUDE.md"
-  - "AGENTS.md"
+  - "TEMPLATE-NOTES.md"
   - "README.md"
 
 _envops:

@@ -1,0 +1,77 @@
+# AGENTS.md — {{ app_name }}
+
+Generato da [`redberry-webapp-template`](https://github.com/{{ github_owner }}/redberry-webapp-template).
+Le convenzioni Python/FastAPI/NiceGUI generali vivono nelle regole globali
+dell'utente (`~/.claude/rules/python.md`, `uvicorn.md`, `nicegui.md`,
+`fastapi-auth.md`, `docker.md`) — questo file **non le ripete**, documenta
+solo cosa è specifico di questo progetto.
+
+## Cos'è
+
+TODO: una frase su cosa fa l'app.
+
+## Architettura
+
+```
+app/
+├── main.py              L'entrypoint E l'app FastAPI (app = FastAPI(...) a livello
+│                         modulo) — auth gate, lifespan (background task), health check,
+│                         `if __name__ == "__main__":` per l'avvio locale.
+├── config.py             ConfigManager — due tier: HOST/PORT/DEV (env, boot-time, mai
+│                         qui) vs REFRESH_*/RATE_LIMIT/API_TOKENS (config.yaml-equivalente
+│                         via .env, hot-reload ~5s). Estendi _DEFAULTS/_SECRET_KEYS qui.
+├── metrics.py             MetricsRecord/metrics — storico richieste per la dashboard.
+├── libs/                   Business logic libera da import FastAPI/NiceGUI — testabile
+│                         senza TestClient (vedi tests/test_libs_example.py).
+└── ui/
+    ├── router.py            /login, /auth/login, /auth/logout — AuthManager, rate-limit
+    │                         di login (semaforo, vedi sotto).
+    └── pages.py              Dashboard + pagina Config — @ui.page, NavItem, auto-refresh.
+static/login.html          Pagina login self-contained (CSS inline).
+scripts/                    set_password.py, checks.sh/.bat, run.sh/.bat — vedi Sviluppo.
+docker-compose*.yml         Due file (prod/dev) — vedi docker.md.
+```
+
+TODO: mappa di eventuali package aggiuntivi non appena il progetto ne ha.
+
+## Decisioni chiave
+
+- **Un solo entrypoint**: `app/main.py` è insieme l'app FastAPI (`app = FastAPI(...)`
+  a livello modulo) e il launcher (`if __name__ == "__main__":` con `uvicorn.run(...)`)
+  — niente file `server.py` separato (uvicorn.md §2).
+- **NiceGUI montato su `/ui`**, mai su root — è il confine che rende univoco cosa è
+  protetto da cookie (`/ui/*`) e cosa da Bearer opt-in (il resto) — vedi `_auth_gate`
+  in `main.py.jinja` e nicegui.md §5.
+- **Login capato da semaforo**: `_login_semaphore` in `router.py.jinja` limita a
+  `_LOGIN_MAX_CONCURRENT=4` le verifiche scrypt concorrenti (~128MB/~150-250ms
+  l'una) — un burst di tentativi non autenticati non può moltiplicare la memoria
+  (uvicorn.md §5, applicato al path di login).
+- **Rate-limit globale: logga, non blocca.** Un lockout globale rigido permetterebbe
+  a un attaccante (IP reali o spoofati) di bloccare ogni login legittimo — il
+  blocco per-IP (`auth.is_ip_blocked`) è la difesa reale, il globale è solo
+  osservabilità (vedi commento in `router.py.jinja`).
+- **Task di background fatali se muoiono inattesi**: `purge_loop` (rate-limit) e
+  il config-reload loop chiamano `os._exit(1)` se falliscono con un'eccezione non
+  gestita (`_crash_on_task_error` in `main.py.jinja`) — un errore *atteso* (es.
+  `.env` illeggibile per un attimo) viene invece catturato punto per punto e il
+  loop prosegue. Stesso principio Python-idiomatico dell'equivalente Java
+  (`Runtime.halt(1)`, vedi `~/.claude/rules/java.md` §3) e Go (`os._exit(1)`).
+- **Docker opt-in ma presente**: due compose (`docker-compose.yml` prod da GHCR,
+  `docker-compose-dev.yml` build locale) — vedi docker.md per il pattern completo
+  (`.env` bind-montato, mai `env_file:`, eccezioni `PORT`/`TZ`/`ports:`).
+- TODO: altre deviazioni dalle convenzioni globali (se ce ne sono), motivate — non
+  ripetere qui scelte già coperte da `~/.claude/rules/*.md`.
+
+## Sviluppo
+
+```
+scripts/checks.sh   # ruff + mypy + pytest (Windows: checks.bat)
+scripts/run.sh       # avvio locale (Windows: run.bat)
+python scripts/set_password.py   # prima esecuzione, imposta la password dashboard
+```
+
+## Allineamento al template
+
+Questo progetto nasce da `redberry-webapp-template` via Copier. Per propagare
+aggiornamenti del template: `copier update --defaults` dalla root del progetto
+(richiede `.copier-answers.yml`, già presente).
