@@ -5,11 +5,11 @@ import re
 from datetime import datetime
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from markupsafe import Markup
 from redberry_webkit.request_view import RequestRow, request_rows_from_metrics
 from redberry_webkit.timezone_utils import resolve_timezone
-from redberry_webkit.web import parse_config_form, status_badge
+from redberry_webkit.web import ASSET_CACHE_CONTROL, parse_config_form, status_badge
 
 from app.config import config
 from app.metrics import metrics
@@ -20,6 +20,26 @@ DISPLAY_TZ = resolve_timezone(os.getenv("TZ", "UTC"))
 _RATE_LIMIT_RE = re.compile(r"^\d+/(second|minute|hour|day)$")
 
 router = APIRouter(prefix="/ui")
+
+
+def _asset_response(name: str) -> Response:
+    asset = layout.asset(name)
+    if asset is None:
+        return Response(status_code=404)
+    data, content_type = asset
+    return Response(data, media_type=content_type, headers={"Cache-Control": ASSET_CACHE_CONTROL})
+
+
+# Explicit routes, not a /{name} wildcard: router routes win over the /ui/_assets StaticFiles mount
+# (registered later in main.py) and must not shadow app.css. Both are gate-exempt via /ui/_assets.
+@router.get("/_assets/favicon")
+async def favicon() -> Response:
+    return _asset_response("favicon")
+
+
+@router.get("/_assets/logo")
+async def logo() -> Response:
+    return _asset_response("logo")
 
 
 def _card(label: str, value: str, tone: str = "primary") -> Markup:

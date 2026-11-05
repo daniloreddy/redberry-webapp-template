@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from markupsafe import Markup
 from redberry_webkit.web import ConfigField, FieldType, NavItem, WebLayout, icon
 
@@ -17,7 +19,27 @@ EXTRA_HEAD = Markup(
     '<script src="/ui/_static/htmx.min.js" defer></script>'
 )
 
-layout = WebLayout(APP_NAME, NAV_ITEMS, extra_head=EXTRA_HEAD)
+_STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
+
+
+def _read_optional(*names: str) -> bytes | None:
+    """Return the bytes of the first of `names` found in static/, or None."""
+    for name in names:
+        path = _STATIC_DIR / name
+        if path.is_file():
+            return path.read_bytes()
+    return None
+
+
+# Optional branding: drop static/favicon.(png|ico|svg) and/or static/logo.(svg|png) to enable them.
+# webkit sniffs the type; served at /ui/_assets/favicon and /ui/_assets/logo (see pages.py).
+layout = WebLayout(
+    APP_NAME,
+    NAV_ITEMS,
+    extra_head=EXTRA_HEAD,
+    favicon=_read_optional("favicon.png", "favicon.ico", "favicon.svg"),
+    logo=_read_optional("logo.svg", "logo.png"),
+)
 
 # Runtime-editable keys shown on /ui/config. A derived project appends its own here
 # (and to app/config.py's _DEFAULTS), following the same pattern.

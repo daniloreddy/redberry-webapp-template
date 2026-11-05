@@ -28,7 +28,8 @@ app/
     ├── router.py            /login, /auth/login, /auth/logout — AuthManager, rate-limit
     │                         di login (semaforo, vedi sotto).
     └── pages.py              Dashboard (fragment HTMX in polling) + pagina Config.
-static/                      htmx.min.js (vendored, verbatim) + app.css del progetto
+static/                      htmx.min.js (vendored, verbatim) + app.css del progetto; opzionali
+                              favicon.(png|ico|svg) / logo.(svg|png) → serviti a /ui/_assets/favicon|logo.
                               (solo regole delle sue pagine; la chrome è di webkit).
 scripts/                    set_password.py, checks.sh/.bat, run.sh/.bat — vedi Sviluppo.
 docker-compose*.yml         Due file (prod/dev) — vedi docker.md.

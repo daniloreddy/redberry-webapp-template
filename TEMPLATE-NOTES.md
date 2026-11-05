@@ -99,7 +99,7 @@ per-file via the `.jinja` suffix, not global).
 `metrics`, `request_view` (request-table view-model: `RequestRow`,
 `request_rows_from_metrics()`, `REQUEST_TABLE_BASE_COLUMNS`,
 `request_meta()`) and `web` (Jinja2 page chrome: `WebLayout`, `NavItem`,
-`icon()`, `status_badge()`, `parse_config_form()`, `STATIC_DIR`) all live in
+`icon()`, `status_badge()`, `parse_config_form()`, favicon/logo via `WebLayout(favicon=, logo=)`, `STATIC_DIR`) all live in
 [`redberry-webkit`](https://github.com/daniloreddy/redberry-webkit), a
 shared pip package. Pin in `requirements.txt`:
 `redberry-webkit @ git+https://github.com/daniloreddy/redberry-webkit.git@vX.Y.Z`.

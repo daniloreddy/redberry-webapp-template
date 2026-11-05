@@ -257,3 +257,22 @@ def test_config_page_rejects_invalid_values(client: TestClient, isolated_auth: A
     assert "Rate limit non valido" in bad_rate.text
     assert bad_interval.status_code == 400
     assert "minimo 1s" in bad_interval.text
+
+
+def test_branding_assets_404_when_unset_and_served_when_set(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.ui.layout import layout
+
+    monkeypatch.setattr(layout, "logo", None)
+    monkeypatch.setattr(layout, "favicon", None)
+    assert client.get("/ui/_assets/logo").status_code == 404
+    assert client.get("/ui/_assets/favicon").status_code == 404
+    assert client.get("/ui/_assets/app.css").status_code == 200  # the explicit routes don't shadow the static mount
+
+    monkeypatch.setattr(layout, "logo", b"<svg xmlns='http://www.w3.org/2000/svg'/>")
+    response = client.get("/ui/_assets/logo")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/svg+xml")
+    assert response.headers["cache-control"] == "public, max-age=86400"
+    assert "app-logo" in layout.render_page("T", "", "")
