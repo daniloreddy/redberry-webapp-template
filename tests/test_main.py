@@ -204,6 +204,7 @@ def test_login_page_renders_without_auth(client: TestClient) -> None:
 
 def test_assets_load_without_auth(client: TestClient) -> None:
     assert client.get("/ui/_assets/app.css").status_code == 200
+    assert client.get("/ui/_assets/app.js").status_code == 200  # shared behaviour the layout loads
     assert client.get("/ui/_static/htmx.min.js").status_code == 200
     assert client.get("/ui/_static/app.css").status_code == 200
 
