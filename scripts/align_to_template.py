@@ -20,7 +20,7 @@ TEMPLATE_OWNED_FILES = {
     "docker-compose.yml",
     "docker-compose-dev.yml",
     ".dockerignore",
-    "static/login.html",
+    "static/htmx.min.js",
     "scripts/run.bat",
     "scripts/run.sh",
     "scripts/checks.bat",
@@ -33,7 +33,7 @@ TEMPLATE_OWNED_FILES = {
 # drafts) that have no counterpart in the template and aren't business logic either.
 EXCLUDE_DIRS = {
     ".git", "data", "__pycache__", ".pytest_cache", ".ruff_cache",
-    ".mypy_cache", ".nicegui", "venv", ".venv", "node_modules", "tools",
+    ".mypy_cache", "venv", ".venv", "node_modules", "tools",
     ".claude", "debug", "docs",
 }
 

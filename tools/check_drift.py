@@ -28,7 +28,7 @@ _TEMPLATE_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_PROJECTS_ROOT = _TEMPLATE_ROOT.parent
 
 _VERBATIM_PATHS = [
-    "static/login.html",
+    "static/htmx.min.js",
 ]
 
 

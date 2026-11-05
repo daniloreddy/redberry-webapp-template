@@ -33,7 +33,7 @@ async def _isolated_metrics(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     # app/ui/pages.py each do `from app.metrics import metrics` — two independent name
     # bindings captured at import time. Patching main_module alone leaves pages_module's
     # binding pointed at the original (uninitialized-in-tests) singleton, so any test that
-    # renders a NiceGUI page hits the real metrics.db, or a fresh scaffold's db that has
+    # renders a dashboard page hits the real metrics.db, or a fresh scaffold's db that has
     # no `requests` table yet.
     store = MetricsStore(db_path=tmp_path / "metrics.db")
     await store.init_db()
@@ -188,3 +188,72 @@ def test_login_verify_timeout_returns_503(
 
     response = client.post("/auth/login", data={"password": "test-password-123"})
     assert response.status_code == 503
+
+
+def _login(client: TestClient, isolated_auth: AuthManager) -> None:
+    isolated_auth.set_password("test-password-123")
+    client.post("/auth/login", data={"password": "test-password-123"}, follow_redirects=False)
+
+
+def test_login_page_renders_without_auth(client: TestClient) -> None:
+    response = client.get("/login", params={"error": "invalid"})
+    assert response.status_code == 200
+    assert "Password errata." in response.text
+    assert 'action="/auth/login"' in response.text
+
+
+def test_assets_load_without_auth(client: TestClient) -> None:
+    assert client.get("/ui/_assets/app.css").status_code == 200
+    assert client.get("/ui/_static/htmx.min.js").status_code == 200
+    assert client.get("/ui/_static/app.css").status_code == 200
+
+
+def test_dashboard_renders_when_logged_in(client: TestClient, isolated_auth: AuthManager) -> None:
+    _login(client, isolated_auth)
+    response = client.get("/ui/")
+    assert response.status_code == 200
+    assert 'id="live"' in response.text
+    assert 'hx-get="/ui/fragment/live"' in response.text
+    assert "Richieste totali" in response.text
+    assert 'action="/auth/logout"' in response.text
+
+
+def test_live_fragment_requires_auth_and_renders(client: TestClient, isolated_auth: AuthManager) -> None:
+    assert client.get("/ui/fragment/live", follow_redirects=False).status_code == 302
+    _login(client, isolated_auth)
+    response = client.get("/ui/fragment/live")
+    assert response.status_code == 200
+    assert "<html" not in response.text
+    assert "Aggiornato:" in response.text
+
+
+def test_config_page_save_roundtrip(
+    client: TestClient, isolated_auth: AuthManager, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env_file = tmp_path / "cfg.env"
+    env_file.write_text("")
+    test_config = ConfigManager(defaults=_DEFAULTS, secret_keys=_SECRET_KEYS, env_path=env_file)
+    monkeypatch.setattr(pages_module, "config", test_config)
+    _login(client, isolated_auth)
+
+    response = client.post(
+        "/ui/config",
+        data={"REFRESH_ENABLED": "on", "REFRESH_INTERVAL": "9", "RATE_LIMIT": "30/minute"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert test_config.get("REFRESH_INTERVAL") == "9"
+    assert test_config.get("RATE_LIMIT") == "30/minute"
+    assert 'value="9"' in client.get("/ui/config").text
+
+
+def test_config_page_rejects_invalid_values(client: TestClient, isolated_auth: AuthManager) -> None:
+    _login(client, isolated_auth)
+
+    bad_rate = client.post("/ui/config", data={"REFRESH_INTERVAL": "5", "RATE_LIMIT": "lots"})
+    bad_interval = client.post("/ui/config", data={"REFRESH_INTERVAL": "0", "RATE_LIMIT": "5/minute"})
+
+    assert bad_rate.status_code == 400
+    assert "Rate limit non valido" in bad_rate.text
+    assert bad_interval.status_code == 400
+    assert "minimo 1s" in bad_interval.text

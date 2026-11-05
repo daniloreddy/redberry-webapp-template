@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+from markupsafe import Markup
+from redberry_webkit.web import ConfigField, FieldType, NavItem, WebLayout, icon
+
+APP_NAME = "{{ app_name }}"
+
+NAV_ITEMS: list[NavItem] = [
+    NavItem("Dashboard", "/ui/", icon("home")),
+    NavItem("Impostazioni", "/ui/config", icon("sliders")),
+]
+
+# Project stylesheet/scripts, loaded AFTER the shared /ui/_assets/app.css so they can
+# override its tokens (--primary, ...). htmx is vendored in static/, never a CDN.
+EXTRA_HEAD = Markup(
+    '<link rel="stylesheet" href="/ui/_static/app.css">'
+    '<script src="/ui/_static/htmx.min.js" defer></script>'
+)
+
+layout = WebLayout(APP_NAME, NAV_ITEMS, extra_head=EXTRA_HEAD)
+
+# Runtime-editable keys shown on /ui/config. A derived project appends its own here
+# (and to app/config.py's _DEFAULTS), following the same pattern.
+CONFIG_FIELDS: list[ConfigField] = [
+    ConfigField("REFRESH_ENABLED", "Auto-refresh dashboard", type=FieldType.BOOL),
+    ConfigField("REFRESH_INTERVAL", "Intervallo auto-refresh (s)", help="Minimo 1 secondo", type=FieldType.NUMBER),
+    ConfigField(
+        "RATE_LIMIT",
+        "Rate limit (slowapi, es. 20/minute)",
+        help="Applicato ad ogni richiesta, hot-reload senza restart",
+    ),
+]

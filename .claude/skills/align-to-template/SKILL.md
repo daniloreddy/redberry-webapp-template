@@ -1,11 +1,13 @@
 ---
 name: align-to-template
-description: Use when asked to align, update, or migrate an existing FastAPI+NiceGUI project to redberry-webapp-template — phrases like "allinea questo progetto al template", "porta X sul template", "aggiorna il progetto al template". Drives alignment via `copier update` (safe 3-way merge) plus a reviewed diff for drift the template never touched — never a blind file overwrite.
+description: Use when asked to align, update, or migrate an existing FastAPI project to redberry-webapp-template — phrases like "allinea questo progetto al template", "porta X sul template", "aggiorna il progetto al template". Drives alignment via `copier update` (safe 3-way merge) plus a reviewed diff for drift the template never touched — never a blind file overwrite.
 ---
 
 # Align to Template
 
 Guida un allineamento completo di un progetto esistente a `redberry-webapp-template`.
+
+> **Stack UI cambiato (webkit ≥ v0.5.0)**: il template ora usa Jinja2 + HTMX (`~/.claude/guidelines/web-py.md`), non NiceGUI. I grep e le checklist `nicegui.md` qui sotto valgono solo per progetti ancora su NiceGUI; allineare un progetto NiceGUI al template = **migrarlo** a `redberry_webkit.web` (checklist in `web-py.md` §7), non un `copier update` banale.
 
 **Perché questa skill esiste, e perché questa versione**: la v1 usava
 `scripts/align_to_template.py` per generare una skeleton fresca e poi **sostituiva

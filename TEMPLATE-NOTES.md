@@ -1,6 +1,6 @@
 # Redberry Webapp Template
 
-Reusable scaffold, not a product. Starting point for new FastAPI + NiceGUI
+Reusable scaffold, not a product. Starting point for new FastAPI + Jinja2/HTMX
 projects.
 
 ## Starting a new project from this scaffold
@@ -24,16 +24,16 @@ instead of staying stuck at the initial copy.
    Copier asks for `app_name` (e.g. "Mail Manager"), `app_slug` (default
    auto-derived, used for cookies/Docker) and `github_owner`. The values
    replace every hardcoded reference (`APP_NAME`, `cookie_name`, Docker
-   service/image name, `FastAPI(title=...)`, `static/login.html`) — no
+   service/image name, `FastAPI(title=...)`, login page via `WebLayout.render_login`) — no
    manual renaming needed.
 3. `cd path/to/new-project && git init` (the template doesn't include `.git`).
 4. Delete `app/libs/example.py` (and its test) and add the project's real
-   logic there — pure modules, no FastAPI/NiceGUI import, testable without
+   logic there — pure modules, no FastAPI/Jinja2 import, testable without
    `TestClient`.
 5. Extend `app/config.py`: add the project's runtime-editable keys to
    `_DEFAULTS`/`_SECRET_KEYS` (no subclassing needed — see the comment in
    the file). Add the corresponding fields to the Config page
-   (`app/ui/pages.py`, `config_page()`), following the same existing
+   (`CONFIG_FIELDS` in `app/ui/layout.py`), following the same existing
    pattern.
 6. Replace `GET /api/v1/example` in `app/main.py` with the real endpoints,
    keeping the `@limiter.limit(...)` + `metrics.record(...)` pattern.
@@ -59,7 +59,7 @@ same flow as a merge.
 
 Since it was converted into a [Copier](https://copier.readthedocs.io/)
 template, files that contain placeholders (`app/main.py.jinja`,
-`app/ui/router.py.jinja`, `app/ui/pages.py.jinja`, `static/login.html.jinja`,
+`app/ui/router.py.jinja`, `app/ui/pages.py.jinja`, `app/ui/layout.py.jinja`,
 `docker-compose*.yml.jinja`) exist only with a `.jinja` suffix in the source
 — Copier strips it at generation time. This means **`python -m app.main`,
 `pytest`, `mypy app` do NOT work when run directly in this repo** (the real
@@ -98,9 +98,8 @@ per-file via the `.jinja` suffix, not global).
 `env_resolver`, `auth`, `config`, `logging_utils`, `timezone_utils`,
 `metrics`, `request_view` (request-table view-model: `RequestRow`,
 `request_rows_from_metrics()`, `REQUEST_TABLE_BASE_COLUMNS`,
-`STATUS_CELL_SLOT`, `request_meta()`) and `ui` (NiceGUI page chrome:
-`page()`, `header()`, `footer()`, `metric_card()`, `logout_action()`,
-`NavItem`) all live in
+`request_meta()`) and `web` (Jinja2 page chrome: `WebLayout`, `NavItem`,
+`icon()`, `status_badge()`, `parse_config_form()`, `STATIC_DIR`) all live in
 [`redberry-webkit`](https://github.com/daniloreddy/redberry-webkit), a
 shared pip package. Pin in `requirements.txt`:
 `redberry-webkit @ git+https://github.com/daniloreddy/redberry-webkit.git@vX.Y.Z`.
@@ -139,22 +138,21 @@ into the template — keep it in every customization of the login flow.
 
 - **redberry-webkit**: identical regardless of the project — auth, config,
   metrics, credential redaction, tz (framework-free), plus the request-table
-  view-model (`request_view`) and the NiceGUI page chrome (`ui` — the one
-  module in the package that imports NiceGUI directly; see that package's
-  own `AGENTS.md` for why).
+  view-model (`request_view`) and the Jinja2 page chrome (`web`, framework-free;
+  the legacy NiceGUI `ui` module stays in the package until every consumer migrates).
 - **This scaffold**: application wiring — routing, pages, `main.py` wiring,
   Docker, scripts. Every derived project customizes it. `app/ui/pages.py`
   keeps only the page *content* (dashboard cards/table, Config form fields);
-  the chrome around it (`page()`, `metric_card()`, the status-badge slot,
-  `NavItem`) is imported, not hand-written — a scaffolded project extends
-  `NAV_ITEMS` and adds pages, it doesn't redefine `_header`/`_footer`.
+  the chrome around it (`WebLayout`, `status_badge()`, `NavItem`, the shared
+  `app.css`) is imported, not hand-written — a scaffolded project extends
+  `NAV_ITEMS` and adds pages, it doesn't redefine header/footer.
 
 ## Extending `app/config.py`
 
 `ConfigManager` (redberry-webkit) accepts `defaults`/`secret_keys` as
 constructor dicts — no subclassing needed. A derived project extends both
 dicts in `app/config.py` before constructing `config`, then adds the
-corresponding fields to the Config page (`app/ui/pages.py`).
+corresponding fields to the Config page (`CONFIG_FIELDS` in `app/ui/layout.py`).
 
 ## Execution constraints
 
@@ -185,7 +183,7 @@ Copier-"owned" file):
 
 - **`tools/check_drift.py`** — `copier update` only reports the drift of
   the pinned commit in `.copier-answers.yml`; it doesn't verify that files
-  meant to stay "copied verbatim" (`static/login.html`, and in general
+  meant to stay "copied verbatim" (`static/htmx.min.js`, and in general
   anything documented as a reference implementation in fastapi-auth.md/
   uvicorn.md) are still identical to the template's current render. A
   derived scaffold can rewrite one of these files by hand and `copier

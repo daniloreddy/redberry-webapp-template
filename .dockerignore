@@ -10,7 +10,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.log
-.nicegui/
 node_modules/
 .pytest_cache/
 .ruff_cache/

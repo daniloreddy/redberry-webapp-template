@@ -20,11 +20,12 @@ import uvicorn  # noqa: E402
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status  # noqa: E402
 from fastapi.responses import RedirectResponse  # noqa: E402
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer  # noqa: E402
-from nicegui import ui  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 from redberry_webkit.auth import client_ip, purge_loop  # noqa: E402
 from redberry_webkit.auth import verify_api_token as verify_bearer_token  # noqa: E402
 from redberry_webkit.logging_utils import CredentialFilter  # noqa: E402
 from redberry_webkit.request_view import request_meta  # noqa: E402
+from redberry_webkit.web import STATIC_DIR as WEBKIT_STATIC_DIR  # noqa: E402
 from slowapi import Limiter, _rate_limit_exceeded_handler  # noqa: E402
 from slowapi.errors import RateLimitExceeded  # noqa: E402
 from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
@@ -33,6 +34,7 @@ from starlette.middleware.base import RequestResponseEndpoint  # noqa: E402
 from app.config import config  # noqa: E402
 from app.libs.example import greet  # noqa: E402
 from app.metrics import MetricsRecord, metrics  # noqa: E402
+from app.ui.pages import router as pages_router  # noqa: E402
 from app.ui.router import TRUSTED_PROXIES, auth  # noqa: E402
 from app.ui.router import router as ui_router  # noqa: E402
 
@@ -154,10 +156,12 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 app.add_middleware(SlowAPIMiddleware)
 app.include_router(ui_router)
+app.include_router(pages_router)
 
 _UI_PREFIX = "/ui"
 _LOGIN_PATHS = {"/login", "/auth/login", "/auth/logout"}
-_UI_BYPASS_PREFIXES = (f"{_UI_PREFIX}/_nicegui",)
+# Static assets (shared app.css, vendored htmx, project css) must load on /login too.
+_UI_BYPASS_PREFIXES = (f"{_UI_PREFIX}/_assets", f"{_UI_PREFIX}/_static")
 
 
 @app.middleware("http")
@@ -213,13 +217,12 @@ async def example_endpoint(
     return {"message": message}
 
 
-from app.ui import pages as _ui_pages  # noqa: E402,F401
-
-ui.run_with(app, mount_path="/ui", storage_secret=auth.ui_storage_secret)
+app.mount(f"{_UI_PREFIX}/_assets", StaticFiles(directory=WEBKIT_STATIC_DIR), name="webkit-assets")
+app.mount(f"{_UI_PREFIX}/_static", StaticFiles(directory=PROJECT_ROOT / "static"), name="static")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="{{ app_name }} — FastAPI + NiceGUI web app")
+    parser = argparse.ArgumentParser(description="{{ app_name }} — FastAPI + Jinja2/HTMX web app")
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--host", type=str, default=HOST)
     parser.add_argument("--dev", action=argparse.BooleanOptionalAction, default=DEV)
@@ -231,7 +234,7 @@ if __name__ == "__main__":
         host=args.host,
         port=args.port,
         reload=args.dev,
-        # Reload must not watch data/ (logs, sqlite, auth.json, NiceGUI storage) — the
+        # Reload must not watch data/ (logs, sqlite, auth.json) — the
         # app writes there continuously, and watching it makes every log line trigger
         # a reload that logs again, forever.
         reload_dirs=[str(PROJECT_ROOT / "app"), str(PROJECT_ROOT / "static")] if args.dev else None,

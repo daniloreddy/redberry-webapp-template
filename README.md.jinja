@@ -1,6 +1,6 @@
 # {{ app_name }}
 
-FastAPI/uvicorn + NiceGUI dashboard, cookie/JWT auth, hot-reloadable runtime
+FastAPI/uvicorn + Jinja2/HTMX dashboard, cookie/JWT auth, hot-reloadable runtime
 config, rate limiting, metrics persisted to SQLite. Generato da
 [`redberry-webapp-template`](https://github.com/{{ github_owner }}/redberry-webapp-template)
 con [Copier](https://copier.readthedocs.io/). Vedi `AGENTS.md` per
@@ -10,7 +10,7 @@ Funzionalità condivise (auth, config, env resolution, log redaction,
 timezone, metrics) vengono da
 [`redberry-webkit`](https://github.com/daniloreddy/redberry-webkit) — questo
 repo aggiunge solo il wiring applicativo (`main.py`, routing, pagine
-NiceGUI, Docker, script).
+Jinja2/HTMX, Docker, script).
 
 ## Quick start (locale)
 
@@ -47,7 +47,6 @@ Vedi `.env.example` per l'elenco completo. Variabili principali:
 | `API_TOKENS` | *(vuoto)* | Bearer token comma-separated per eventuali endpoint API fuori da `/ui`. |
 | `RATE_LIMIT` | `20/minute` | Limite (sintassi slowapi) sugli endpoint API — hot-reload, editabile da `/ui/config`. |
 | `REFRESH_ENABLED` / `REFRESH_INTERVAL` | `true` / `5` | Auto-refresh dashboard — hot-reload, editabile da `/ui/config`. |
-| `NICEGUI_STORAGE_PATH` | *(vuoto)* | Solo Docker: `/app/data/.nicegui` per persistere il tema chiaro/scuro tra i restart. |
 
 ## Docker
 
@@ -79,14 +78,15 @@ Esegue `ruff check`, `mypy app` (strict) e `pytest` in sequenza.
 ```
 app/
 ├── main.py         # FastAPI + lifespan (config reload, auth purge, metrics init) + auth gate +
-│                   # rate limiting + /health + mount NiceGUI + endpoint di esempio
+│                   # rate limiting + /health + mount static + endpoint di esempio
 ├── config.py       # ConfigManager (redberry_webkit) con i default runtime-editable dello scaffold
 ├── metrics.py      # MetricsStore (redberry_webkit) su data/metrics.db
 ├── libs/           # logica pura specifica del progetto — example.py è un placeholder da sostituire
 └── ui/
     ├── router.py   # /login /auth/login /auth/logout (AuthManager)
-    └── pages.py    # dashboard (metriche + storico) + pagina Config
-static/login.html   # pagina di login self-contained
+    ├── layout.py   # WebLayout (redberry_webkit.web), NAV_ITEMS, CONFIG_FIELDS
+    └── pages.py    # dashboard (HTMX polling) + pagina Config
+static/             # htmx.min.js (vendored) + app.css del progetto
 scripts/            # run/checks (bat+sh), set_password.py
 data/               # auth.json, metrics.db, logs/ — gitignored
 ```

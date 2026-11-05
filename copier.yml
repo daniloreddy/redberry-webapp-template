@@ -21,7 +21,6 @@ _exclude:
   - ".pytest_cache"
   - ".ruff_cache"
   - ".mypy_cache"
-  - ".nicegui"
   - "tools"
   - "venv"
   - ".claude"

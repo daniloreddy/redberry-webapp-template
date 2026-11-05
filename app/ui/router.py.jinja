@@ -6,13 +6,14 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, Request, status
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from redberry_webkit.auth import AuthManager, client_ip, is_secure_context
+
+from app.ui.layout import layout
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-STATIC_DIR = PROJECT_ROOT / "static"
 DATA_DIR = PROJECT_ROOT / "data"
 
 TRUSTED_PROXIES = {ip.strip() for ip in os.getenv("TRUSTED_PROXIES", "127.0.0.1").split(",") if ip.strip()}
@@ -36,9 +37,9 @@ def _get_client_ip(request: Request) -> str:
     return client_ip(request.headers, host, TRUSTED_PROXIES)
 
 
-@router.get("/login")
-async def login_page() -> FileResponse:
-    return FileResponse(STATIC_DIR / "login.html")
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(error: str = "") -> str:
+    return layout.render_login(error)
 
 
 @router.post("/auth/login")

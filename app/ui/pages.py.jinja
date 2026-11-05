@@ -4,152 +4,107 @@ import os
 import re
 from datetime import datetime
 
-from nicegui import ui
-from redberry_webkit.request_view import REQUEST_TABLE_BASE_COLUMNS, STATUS_CELL_SLOT, request_rows_from_metrics
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from markupsafe import Markup
+from redberry_webkit.request_view import RequestRow, request_rows_from_metrics
 from redberry_webkit.timezone_utils import resolve_timezone
-from redberry_webkit.ui import NavItem, metric_card, page
+from redberry_webkit.web import parse_config_form, status_badge
 
 from app.config import config
 from app.metrics import metrics
+from app.ui.layout import CONFIG_FIELDS, layout
 
-APP_NAME = "{{ app_name }}"
 DISPLAY_TZ = resolve_timezone(os.getenv("TZ", "UTC"))
 
 _RATE_LIMIT_RE = re.compile(r"^\d+/(second|minute|hour|day)$")
 
-NAV_ITEMS: list[NavItem] = [
-    NavItem("Dashboard", "dashboard", "/"),
-    NavItem("Impostazioni", "settings", "/config"),
-]
+router = APIRouter(prefix="/ui")
 
 
-@ui.page("/")
-async def dashboard_page() -> None:
-    with page("Dashboard", app_name=APP_NAME, nav=NAV_ITEMS, current="Dashboard"), ui.column().classes(
-        "q-pa-md full-width"
-    ):
-        metrics_row = ui.row().classes("full-width q-gutter-md")
-        table_container = ui.column().classes("full-width")
-        refresh_lbl = ui.label("").classes("text-caption text-grey-6").style("text-align:right; width:100%")
-
-        async def _render() -> None:
-            stats = await metrics.get_stats()
-            metrics_row.clear()
-            with metrics_row:
-                metric_card("Richieste totali", str(stats["total_requests"]), "primary")
-                metric_card("Richieste ok", str(stats["ok_requests"]), "positive")
-                metric_card(
-                    "Errori", str(stats["error_requests"]), "negative" if stats["error_requests"] else "primary"
-                )
-                metric_card("Durata media (s)", f"{stats['avg_duration_s']:.2f}", "info")
-
-            history = await metrics.get_history()
-            table_container.clear()
-            with table_container:
-                request_rows = request_rows_from_metrics(history, DISPLAY_TZ)
-                rows = [
-                    {
-                        "id": r.id,
-                        "timestamp": r.timestamp,
-                        "ip": r.ip,
-                        "error_message": r.error_message,
-                        "duration_s": r.duration_s,
-                        "status": r.status,
-                        "user_agent": r.user_agent,
-                    }
-                    for r in request_rows
-                ]
-                timestamp_col, ip_col, duration_col, status_col, user_agent_col = REQUEST_TABLE_BASE_COLUMNS
-                tbl = ui.table(
-                    columns=[
-                        timestamp_col,
-                        ip_col,
-                        {"name": "error_message", "label": "Errore", "field": "error_message"},
-                        duration_col,
-                        status_col,
-                        user_agent_col,
-                    ],
-                    rows=rows,
-                    row_key="id",
-                ).classes("full-width")
-                tbl.add_slot("body-cell-status", STATUS_CELL_SLOT)
-
-            refresh_enabled = config.get_bool("REFRESH_ENABLED")
-            interval = config.get_int("REFRESH_INTERVAL", 5)
-            if refresh_enabled:
-                now = datetime.now(DISPLAY_TZ).strftime("%H:%M:%S")
-                refresh_lbl.set_text(f"Aggiornato: {now} · auto-refresh {interval}s")
-            else:
-                refresh_lbl.set_text("auto-refresh disabilitato")
-
-        await _render()
-
-        # 1s tick instead of a timer built from the interval at page-load time — so a
-        # REFRESH_INTERVAL/REFRESH_ENABLED change saved from the Config page takes effect
-        # on this already-open page without a manual reload.
-        _elapsed_s = 0.0
-
-        async def _tick() -> None:
-            nonlocal _elapsed_s
-            if not config.get_bool("REFRESH_ENABLED"):
-                refresh_lbl.set_text("auto-refresh disabilitato")
-                return
-            _elapsed_s += 1.0
-            if _elapsed_s >= config.get_int("REFRESH_INTERVAL", 5):
-                _elapsed_s = 0.0
-                await _render()
-
-        ui.timer(1.0, _tick)
+def _card(label: str, value: str, tone: str = "primary") -> Markup:
+    return Markup('<div class="card"><div class="card-label">{}</div><div class="card-value {}">{}</div></div>').format(
+        label, tone, value
+    )
 
 
-@ui.page("/config")
-def config_page() -> None:
-    with page("Impostazioni", app_name=APP_NAME, nav=NAV_ITEMS, current="Impostazioni"), ui.column().classes(
-        "q-pa-md full-width"
-    ):
-        cur = config.get_public()
+def _row(r: RequestRow) -> Markup:
+    return Markup(
+        "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>"
+        '<td class="ua" title="{}">{}</td></tr>'
+    ).format(
+        r.timestamp,
+        r.ip or "—",
+        r.error_message,
+        r.duration_s,
+        status_badge(r.status, r.error_message),
+        r.user_agent,
+        r.user_agent or "—",
+    )
 
-        with ui.card().classes("q-pa-md full-width"):
-            ui.label("Interfaccia").classes("text-caption text-grey-6 text-uppercase")
-            refresh_switch = ui.switch(
-                "Auto-refresh dashboard", value=cur.get("REFRESH_ENABLED", "true").lower() in ("true", "1", "yes")
-            )
-            ui.badge("hot-reload").props("color=positive")
-            interval_input = ui.number(
-                "Intervallo auto-refresh (s)", value=int(cur.get("REFRESH_INTERVAL", "5") or 5), min=1
-            ).classes("full-width")
 
-        with ui.card().classes("q-pa-md full-width"):
-            ui.label("API").classes("text-caption text-grey-6 text-uppercase")
-            rate_limit_input = ui.input("Rate limit (slowapi, es. 20/minute)", value=cur.get("RATE_LIMIT", "")).props(
-                'hint="Applicato ad ogni richiesta, hot-reload senza restart"'
-            ).classes("full-width")
+async def _live_fragment() -> Markup:
+    """Metric cards + request table + the auto-refresh status label (the content of `#live`)."""
+    stats = await metrics.get_stats()
+    errors = stats["error_requests"]
+    cards = Markup("").join(
+        [
+            _card("Richieste totali", str(stats["total_requests"])),
+            _card("Richieste ok", str(stats["ok_requests"]), "positive"),
+            _card("Errori", str(errors), "negative" if errors else "primary"),
+            _card("Durata media (s)", f"{stats['avg_duration_s']:.2f}", "info"),
+        ]
+    )
+    rows = Markup("").join(_row(r) for r in request_rows_from_metrics(await metrics.get_history(), DISPLAY_TZ))
+    if config.get_bool("REFRESH_ENABLED"):
+        now = datetime.now(DISPLAY_TZ).strftime("%H:%M:%S")
+        label = f"Aggiornato: {now} · auto-refresh {config.get_int('REFRESH_INTERVAL', 5)}s"
+    else:
+        label = "auto-refresh disabilitato"
+    return Markup(
+        '<div class="cards">{}</div>'
+        '<div class="wk-table-wrap"><table class="rb-table"><thead><tr>'
+        "<th>TimeStamp</th><th>IP</th><th>Errore</th><th>Durata (s)</th><th>Stato</th><th>User Agent</th>"
+        "</tr></thead><tbody>{}</tbody></table></div>"
+        '<label class="refresh-lbl">{}</label>'
+    ).format(cards, rows, label)
 
-        # Un progetto derivato aggiunge qui altre card/campi per le proprie chiavi
-        # di config estese (vedi app/config.py), seguendo lo stesso pattern sopra:
-        # leggere da cur.get(...), scrivere via config.update_many({...}) al salvataggio.
 
-        def _save() -> None:
-            rate_limit = rate_limit_input.value.strip()
-            if not _RATE_LIMIT_RE.match(rate_limit):
-                ui.notify("Rate limit non valido (formato atteso: 20/minute)", color="negative")
-                return
-            interval = int(interval_input.value or 5)
-            if interval < 1:
-                # ui.number(min=1) only constrains normal UI interaction, not a request
-                # crafted directly against the endpoint — without this, a negative value
-                # survives (0 is falsy so it coerces to the 5 default, but e.g. -3 doesn't)
-                # and _tick()'s `_elapsed_s >= REFRESH_INTERVAL` is then always true, making
-                # the dashboard refresh every second regardless of the configured value.
-                ui.notify("Intervallo auto-refresh non valido (minimo 1s)", color="negative")
-                return
-            config.update_many(
-                {
-                    "REFRESH_ENABLED": "true" if refresh_switch.value else "false",
-                    "REFRESH_INTERVAL": str(interval),
-                    "RATE_LIMIT": rate_limit,
-                }
-            )
-            ui.notify("Configurazione salvata", color="positive")
+@router.get("/", response_class=HTMLResponse)
+async def dashboard() -> str:
+    polling = Markup("")
+    if config.get_bool("REFRESH_ENABLED"):
+        interval = max(1, config.get_int("REFRESH_INTERVAL", 5))
+        polling = Markup(' hx-get="/ui/fragment/live" hx-trigger="every {}s" hx-swap="innerHTML"').format(interval)
+    content = Markup('<div id="live"{}>{}</div>').format(polling, await _live_fragment())
+    return layout.render_page("Dashboard", "Dashboard", content)
 
-        ui.button("Salva", on_click=_save).props("color=primary")
+
+@router.get("/fragment/live", response_class=HTMLResponse)
+async def live_fragment() -> str:
+    return str(await _live_fragment())
+
+
+def _render_config(banner: str = "", *, ok: bool = True, status_code: int = 200) -> HTMLResponse:
+    html = layout.render_config(CONFIG_FIELDS, config.get_public(), banner=banner, banner_ok=ok)
+    return HTMLResponse(html, status_code=status_code)
+
+
+@router.get("/config", response_class=HTMLResponse)
+async def config_page(result: str = "") -> HTMLResponse:
+    return _render_config("Configurazione salvata" if result == "ok" else "")
+
+
+@router.post("/config", response_model=None)
+async def config_save(request: Request) -> HTMLResponse | RedirectResponse:
+    form = {k: v for k, v in (await request.form()).items() if isinstance(v, str)}
+    updates, error = parse_config_form(CONFIG_FIELDS, form)
+    if not error and "REFRESH_INTERVAL" in updates and int(updates["REFRESH_INTERVAL"]) < 1:
+        # An HTML min= attribute only constrains normal UI use, not a crafted POST.
+        error = "Intervallo auto-refresh non valido (minimo 1s)"
+    if not error and "RATE_LIMIT" in updates and not _RATE_LIMIT_RE.match(updates["RATE_LIMIT"]):
+        error = "Rate limit non valido (formato atteso: 20/minute)"
+    if error:
+        return _render_config(error, ok=False, status_code=400)
+    config.update_many(updates)
+    return RedirectResponse(url="/ui/config?result=ok", status_code=303)
