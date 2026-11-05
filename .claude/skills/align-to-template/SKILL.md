@@ -64,7 +64,7 @@ copier update --defaults
 Se il template locale (questo repo) non è ancora taggato/pushato con le modifiche
 che vuoi propagare, punta temporaneamente `_src_path` in `.copier-answers.yml` del
 progetto target al path locale del template (path Windows con `/`, es.
-`C:/redberry/src/python/redberry-webapp-template` — **non** notazione mingw
+`C:/redberry/src/redberry-webapp-template` — **non** notazione mingw
 `/c/...`, **non** `file://`: entrambe falliscono con `ValueError: Local template
 must be a directory` su questo setup) e usa `--vcs-ref=HEAD` per non confrontare
 contro l'ultimo tag. Ripristina `_src_path` al valore originale (remote GitHub) a

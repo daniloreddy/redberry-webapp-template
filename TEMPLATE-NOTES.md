@@ -19,7 +19,7 @@ instead of staying stuck at the initial copy.
    ```bash
    copier copy https://github.com/daniloreddy/redberry-webapp-template.git path/to/new-project
    # or, from a local checkout of the scaffold:
-   copier copy C:/redberry/src/python/redberry-webapp-template path/to/new-project
+   copier copy C:/redberry/src/redberry-webapp-template path/to/new-project
    ```
    Copier asks for `app_name` (e.g. "Mail Manager"), `app_slug` (default
    auto-derived, used for cookies/Docker) and `github_owner`. The values

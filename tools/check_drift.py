@@ -11,7 +11,7 @@ Usage (from anywhere, template's own venv must have pyyaml — copier depends on
     python tools/check_drift.py [projects_root] [relative/path ...]
 
 projects_root defaults to this template's parent directory (siblings under
-C:/redberry/src/python). Extra positional args override the default verbatim
+C:/redberry/src). Extra positional args override the default verbatim
 path list below.
 """
 
