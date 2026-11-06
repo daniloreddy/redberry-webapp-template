@@ -17,9 +17,9 @@ instead of staying stuck at the initial copy.
    ```
 2. Generate the new project:
    ```bash
-   copier copy https://github.com/daniloreddy/redberry-webapp-template.git path/to/new-project
+   copier copy --trust https://github.com/daniloreddy/redberry-webapp-template.git path/to/new-project
    # or, from a local checkout of the scaffold:
-   copier copy C:/redberry/src/redberry-webapp-template path/to/new-project
+   copier copy --trust C:/redberry/src/redberry-webapp-template path/to/new-project
    ```
    Copier asks for `app_name` (e.g. "Mail Manager"), `app_slug` (default
    auto-derived, used for cookies/Docker) and `github_owner`. The values
@@ -46,7 +46,7 @@ From the derived project's directory (requires a committed
 `.copier-answers.yml`, generated automatically at step 2):
 
 ```bash
-copier update
+copier update --trust
 ```
 
 Copier computes the diff between the scaffold version used at creation and
@@ -70,11 +70,11 @@ and work/test there, then port the verified changes back into the source
 `.jinja` files:
 
 ```bash
-copier copy . /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
+copier copy --trust . /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
 cd /tmp/skeleton-smoke-test && scripts/checks.bat   # or checks.sh
 ```
 
-**Warning — uncommitted changes**: `copier copy .` with a git repo as the
+**Warning — uncommitted changes**: `copier copy --trust .` with a git repo as the
 source path generates from the last commit (`HEAD`), **not** from the
 working tree — uncommitted changes to `.jinja` files don't show up in the
 generated instance, with no warning. To validate uncommitted changes, first
@@ -85,7 +85,7 @@ Copier there:
 mkdir -p /tmp/webapp-template-src && cp -r --parents $(git ls-files) /tmp/webapp-template-src
 # then overwrite the uncommitted .jinja changes, e.g.:
 cp app/main.py.jinja /tmp/webapp-template-src/app/main.py.jinja
-copier copy /tmp/webapp-template-src /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
+copier copy --trust /tmp/webapp-template-src /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
 ```
 
 `.github/workflows/docker-publish.yml` is the only file copied 1:1 without

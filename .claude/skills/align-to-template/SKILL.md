@@ -58,8 +58,10 @@ Verifica che il progetto abbia `.copier-answers.yml` (se manca, vedi passo 5 pri
 di procedere). Poi, dalla root del progetto target:
 
 ```
-copier update --defaults
+copier update --trust --defaults
 ```
+
+> `--trust` sempre, su tutti e tre i template (py/go/j): è la convenzione comune. Serve ai template con `_tasks` (go e j convertono `make.bat` in CRLF dopo il render); sugli altri è innocuo.
 
 Se il template locale (questo repo) non Ã¨ ancora taggato/pushato con le modifiche
 che vuoi propagare, punta temporaneamente `_src_path` in `.copier-answers.yml` del
