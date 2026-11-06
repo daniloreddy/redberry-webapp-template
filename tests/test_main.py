@@ -6,7 +6,6 @@ from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 from redberry_webkit.auth import AuthManager
@@ -141,8 +140,7 @@ def test_example_endpoint_rejects_non_ascii_bearer_token_with_401(
     test_config = ConfigManager(defaults=_DEFAULTS, secret_keys=_SECRET_KEYS, env_path=env_file)
     monkeypatch.setattr(main_module, "config", test_config)
 
-    headers = httpx.Headers([("Authorization", "Bearer café".encode())])
-    response = client.get("/api/v1/example", headers=headers)
+    response = client.get("/api/v1/example", headers=[("Authorization", "Bearer café".encode())])
     assert response.status_code == 401
 
 
