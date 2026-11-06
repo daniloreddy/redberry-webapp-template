@@ -121,9 +121,9 @@ async def config_save(request: Request) -> HTMLResponse | RedirectResponse:
     updates, error = parse_config_form(CONFIG_FIELDS, form)
     if not error and "REFRESH_INTERVAL" in updates and int(updates["REFRESH_INTERVAL"]) < 1:
         # An HTML min= attribute only constrains normal UI use, not a crafted POST.
-        error = "Intervallo auto-refresh non valido (minimo 1s)"
+        error = "Invalid auto-refresh interval (minimum 1s)"
     if not error and "RATE_LIMIT" in updates and not _RATE_LIMIT_RE.match(updates["RATE_LIMIT"]):
-        error = "Rate limit non valido (formato atteso: 20/minute)"
+        error = "Invalid rate limit (expected format: 20/minute)"
     if error:
         return _render_config(error, ok=False, status_code=400)
     config.update_many(updates)

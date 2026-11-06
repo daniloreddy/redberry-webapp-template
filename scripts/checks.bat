@@ -3,12 +3,12 @@ setlocal
 cd /d "%~dp0.."
 
 if not exist "venv\Scripts\activate.bat" (
-    echo Virtual environment non trovato, lo creo...
+    echo Virtual environment not found, creating it...
     python -m venv venv
 )
 call venv\Scripts\activate.bat
 if not exist "venv\Lib\site-packages\ruff" (
-    echo Dipendenze non installate, le installo...
+    echo Dependencies not installed, installing them...
     pip install -r requirements.dev.txt
 )
 
@@ -24,4 +24,4 @@ echo === pytest ===
 pytest
 if errorlevel 1 exit /b 1
 
-echo Tutti i check sono passati.
+echo All checks passed.

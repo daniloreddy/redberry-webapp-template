@@ -90,7 +90,7 @@ def main() -> None:
 
     target = args.target.resolve()
     if not target.is_dir():
-        print(f"Target non trovato: {target}", file=sys.stderr)
+        print(f"Target not found: {target}", file=sys.stderr)
         sys.exit(1)
 
     with tempfile.TemporaryDirectory(prefix="align_to_template_") as tmp:
@@ -118,15 +118,15 @@ def main() -> None:
             diverging_owned, checkbox=True,
         )
         lines += _checklist(
-            "2. File comuni non owned dal template — divergenza attesa, verificare comunque",
+            "2. Files common to both but not owned by the template — divergence expected, check anyway",
             diverging_other, checkbox=False,
         )
         lines += _checklist(
-            "3. File SOLO nel progetto target — business logic da valutare/portare",
+            "3. Files ONLY in the target project — business logic to evaluate/port",
             sorted(target_files - skeleton_files), checkbox=True,
         )
         lines += _checklist(
-            "4. File SOLO nello skeleton — mancanti nel progetto target",
+            "4. Files ONLY in the skeleton — missing from the target project",
             sorted(skeleton_files - target_files), checkbox=True,
         )
         lines.append(f"\n## 5. File identici: {len(identical)}\n")

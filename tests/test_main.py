@@ -253,9 +253,9 @@ def test_config_page_rejects_invalid_values(client: TestClient, isolated_auth: A
     bad_interval = client.post("/ui/config", data={"REFRESH_INTERVAL": "0", "RATE_LIMIT": "5/minute"})
 
     assert bad_rate.status_code == 400
-    assert "Rate limit non valido" in bad_rate.text
+    assert "Invalid rate limit" in bad_rate.text
     assert bad_interval.status_code == 400
-    assert "minimo 1s" in bad_interval.text
+    assert "minimum 1s" in bad_interval.text
 
 
 def test_branding_assets_404_when_unset_and_served_when_set(

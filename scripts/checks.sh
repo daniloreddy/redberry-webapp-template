@@ -3,12 +3,12 @@ set -e
 cd "$(dirname "$0")/.."
 
 if [ ! -f ".venv/bin/activate" ]; then
-    echo "Virtual environment non trovato, lo creo..."
+    echo "Virtual environment not found, creating it..."
     python3 -m venv .venv
 fi
 source .venv/bin/activate
 if ! python -c "import ruff" 2>/dev/null; then
-    echo "Dipendenze non installate, le installo..."
+    echo "Dependencies not installed, installing them..."
     pip install -r requirements.dev.txt
 fi
 
@@ -21,4 +21,4 @@ mypy app
 echo "=== pytest ==="
 pytest
 
-echo "Tutti i check sono passati."
+echo "All checks passed."
