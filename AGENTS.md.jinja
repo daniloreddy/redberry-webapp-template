@@ -17,17 +17,15 @@ app/
 ├── main.py              L'entrypoint E l'app FastAPI (app = FastAPI(...) a livello
 │                         modulo) — auth gate, lifespan (background task), health check,
 │                         `if __name__ == "__main__":` per l'avvio locale.
-├── config.py             ConfigManager — due tier: HOST/PORT/DEV (env, boot-time, mai
-│                         qui) vs REFRESH_*/RATE_LIMIT/API_TOKENS (config.yaml-equivalente
-│                         via .env, hot-reload ~5s). Estendi _DEFAULTS/_SECRET_KEYS qui.
-├── metrics.py             MetricsRecord/metrics — storico richieste per la dashboard.
+├── core.py               `web = create_app(AppSpec(...))` (redberry_webkit.bootstrap): nome, slug,
+│                         menu, campi config. Estendi CONFIG_DEFAULTS/SECRET_KEYS qui. Espone
+│                         web.app/config/auth/metrics/layout/limiter/verify_api_token.
 ├── libs/                   Business logic libera da import FastAPI/Jinja2 — testabile
 │                         senza TestClient (vedi tests/test_libs_example.py).
 └── ui/
-    ├── layout.py            WebLayout (redberry_webkit.web), NAV_ITEMS, EXTRA_HEAD, CONFIG_FIELDS.
-    ├── router.py            /login, /auth/login, /auth/logout — AuthManager, rate-limit
-    │                         di login (semaforo, vedi sotto).
-    └── pages.py              Dashboard (fragment HTMX in polling) + pagina Config.
+    ├── layout.py            Dati: APP_NAME, NAV_ITEMS, EXTRA_HEAD, CONFIG_FIELDS.
+    └── pages.py              Dashboard (fragment HTMX in polling). Login, gate e /ui/config
+                              sono in redberry_webkit.bootstrap, non qui.
 static/                      htmx.min.js (vendored, verbatim) + app.css del progetto; opzionali
                               favicon.(png|ico|svg) / logo.(svg|png) → serviti a /ui/_assets/favicon|logo.
                               (solo regole delle sue pagine; la chrome è di webkit).
@@ -44,20 +42,20 @@ TODO: mappa di eventuali package aggiuntivi non appena il progetto ne ha.
   — niente file `server.py` separato (uvicorn.md §2).
 - **UI sotto `/ui`**, mai su root — è il confine che rende univoco cosa è protetto da
   cookie (`/ui/*`) e cosa da Bearer opt-in (il resto) — vedi `_auth_gate` in
-  `main.py.jinja`. `/ui/_assets` (app.css di webkit) e `/ui/_static` (htmx, css
+  `redberry_webkit/bootstrap.py`. `/ui/_assets` (app.css di webkit) e `/ui/_static` (htmx, css
   progetto) sono esenti dal gate: devono caricare anche su `/login`.
 - **Logout POST-only** (form nella topbar di webkit), mai GET.
-- **Login capato da semaforo**: `_login_semaphore` in `router.py.jinja` limita a
-  `_LOGIN_MAX_CONCURRENT=4` le verifiche scrypt concorrenti (~128MB/~150-250ms
+- **Login capato da semaforo**: `_login_semaphore` in `redberry_webkit/bootstrap.py` limita a
+  `LOGIN_MAX_CONCURRENT=4` le verifiche scrypt concorrenti (~128MB/~150-250ms
   l'una) — un burst di tentativi non autenticati non può moltiplicare la memoria
   (uvicorn.md §5, applicato al path di login).
 - **Rate-limit globale: logga, non blocca.** Un lockout globale rigido permetterebbe
   a un attaccante (IP reali o spoofati) di bloccare ogni login legittimo — il
   blocco per-IP (`auth.is_ip_blocked`) è la difesa reale, il globale è solo
-  osservabilità (vedi commento in `router.py.jinja`).
+  osservabilità (vedi `redberry_webkit/bootstrap.py`).
 - **Task di background fatali se muoiono inattesi**: `purge_loop` (rate-limit) e
   il config-reload loop chiamano `os._exit(1)` se falliscono con un'eccezione non
-  gestita (`_crash_on_task_error` in `main.py.jinja`) — un errore *atteso* (es.
+  gestita (`_crash_on_task_error` in `redberry_webkit/bootstrap.py`) — un errore *atteso* (es.
   `.env` illeggibile per un attimo) viene invece catturato punto per punto e il
   loop prosegue. Stesso principio Python-idiomatico dell'equivalente Java
   (`Runtime.halt(1)`, vedi `~/.claude/rules/java.md` §3) e Go (`os._exit(1)`).

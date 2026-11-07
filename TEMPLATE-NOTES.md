@@ -30,8 +30,8 @@ instead of staying stuck at the initial copy.
 4. Delete `app/libs/example.py` (and its test) and add the project's real
    logic there — pure modules, no FastAPI/Jinja2 import, testable without
    `TestClient`.
-5. Extend `app/config.py`: add the project's runtime-editable keys to
-   `_DEFAULTS`/`_SECRET_KEYS` (no subclassing needed — see the comment in
+5. Extend `app/core.py`: add the project's runtime-editable keys to
+   `CONFIG_DEFAULTS`/`SECRET_KEYS` (no subclassing needed — see the comment in
    the file). Add the corresponding fields to the Config page
    (`CONFIG_FIELDS` in `app/ui/layout.py`), following the same existing
    pattern.
@@ -59,7 +59,7 @@ same flow as a merge.
 
 Since it was converted into a [Copier](https://copier.readthedocs.io/)
 template, files that contain placeholders (`app/main.py.jinja`,
-`app/ui/router.py.jinja`, `app/ui/pages.py.jinja`, `app/ui/layout.py.jinja`,
+`app/core.py.jinja`, `app/ui/pages.py.jinja`, `app/ui/layout.py.jinja`,
 `docker-compose*.yml.jinja`) exist only with a `.jinja` suffix in the source
 — Copier strips it at generation time. This means **`python -m app.main`,
 `pytest`, `mypy app` do NOT work when run directly in this repo** (the real
@@ -124,11 +124,11 @@ Before reimplementing one of these modules from scratch, check whether
 
 `AuthManager.verify_password()` (redberry-webkit ≥v0.2.0, scrypt N=131072)
 is synchronous and costs ~150-250ms/~128MB per call — in
-`app/ui/router.py.jinja` it must always be invoked via
+`redberry_webkit/bootstrap.py` it is always invoked via
 `asyncio.to_thread(...)`, never inline in the async `/auth/login` handler
 (would block the event loop). The call is also wrapped in
-`_login_semaphore` (`_LOGIN_MAX_CONCURRENT = 4`) +
-`asyncio.wait_for(..., timeout=_LOGIN_VERIFY_TIMEOUT_S)` → 503 on timeout:
+`_login_semaphore` (`LOGIN_MAX_CONCURRENT = 4`) +
+`asyncio.wait_for(..., timeout=LOGIN_VERIFY_TIMEOUT_S)` → 503 on timeout:
 without the cap, a burst of unauthenticated requests to `/auth/login` could
 push N × ~128MB of RAM in parallel (no slowapi rate limit on this route, by
 design — see `is_global_limited()`/SEC-02 above). Pattern already wired
@@ -147,11 +147,11 @@ into the template — keep it in every customization of the login flow.
   `app.css`) is imported, not hand-written — a scaffolded project extends
   `NAV_ITEMS` and adds pages, it doesn't redefine header/footer.
 
-## Extending `app/config.py`
+## Extending `app/core.py`
 
 `ConfigManager` (redberry-webkit) accepts `defaults`/`secret_keys` as
 constructor dicts — no subclassing needed. A derived project extends both
-dicts in `app/config.py` before constructing `config`, then adds the
+dicts in `app/core.py` (`CONFIG_DEFAULTS`/`SECRET_KEYS`), then adds the
 corresponding fields to the Config page (`CONFIG_FIELDS` in `app/ui/layout.py`).
 
 ## Execution constraints

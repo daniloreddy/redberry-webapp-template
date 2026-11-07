@@ -29,7 +29,7 @@ def _bootstrap() -> None:
 
 _bootstrap()
 
-from app.ui.router import auth  # noqa: E402
+from app.core import web  # noqa: E402
 
 
 def main() -> None:
@@ -42,8 +42,8 @@ def main() -> None:
         print("Password troppo corta (minimo 8 caratteri).", file=sys.stderr)
         sys.exit(1)
 
-    auth.set_password(password)
-    print(f"Password impostata. File: {auth.auth_file}")
+    web.auth.set_password(password)
+    print(f"Password impostata. File: {web.auth.auth_file}")
 
 
 if __name__ == "__main__":

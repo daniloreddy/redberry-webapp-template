@@ -40,7 +40,7 @@ legittimo. **Non farlo mai più.**
 `args`: `<path-progetto> [app_name] [app_slug]`
 
 Se `app_name`/`app_slug` non sono forniti, cercali nel progetto target prima di
-procedere (es. `grep -r "cookie_name=" app/ui/router.py`, `_APP_NAME` in
+procedere (es. `grep -r "slug=" app/core.py`, `_APP_NAME` in
 `app/ui/pages.py`) — non inventarli.
 
 ## Passi

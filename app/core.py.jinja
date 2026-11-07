@@ -1,0 +1,30 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from redberry_webkit.bootstrap import AppSpec, create_app
+
+from app.ui.layout import APP_NAME, CONFIG_FIELDS, EXTRA_HEAD, NAV_ITEMS
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# Project-specific runtime-editable settings, merged by redberry_webkit on top of the shared ones
+# (REFRESH_ENABLED, REFRESH_INTERVAL, RATE_LIMIT, API_TOKENS). Add the matching ConfigField to
+# CONFIG_FIELDS in app/ui/layout.py to edit them from /ui/config.
+CONFIG_DEFAULTS: dict[str, str] = {}
+SECRET_KEYS: set[str] = set()
+
+# Everything else (auth, login, /ui gate, /health, /ui/config, logging, rate limiting, CLI) lives in
+# redberry_webkit.bootstrap: do not copy it back here.
+web = create_app(
+    AppSpec(
+        name=APP_NAME,
+        slug="{{ app_slug }}",
+        project_root=PROJECT_ROOT,
+        nav_items=NAV_ITEMS,
+        config_fields=CONFIG_FIELDS,
+        config_defaults=CONFIG_DEFAULTS,
+        secret_keys=SECRET_KEYS,
+        extra_head=EXTRA_HEAD,
+    )
+)

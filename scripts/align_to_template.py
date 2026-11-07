@@ -14,7 +14,7 @@ TEMPLATE_ROOT = Path(__file__).resolve().parent.parent
 # here is a bug in the alignment, not a legitimate per-project customization.
 TEMPLATE_OWNED_FILES = {
     "app/main.py",
-    "app/ui/router.py",
+    "app/core.py",
     "app/ui/auth.py",
     "Dockerfile",
     "docker-compose.yml",

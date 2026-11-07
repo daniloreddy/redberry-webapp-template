@@ -68,15 +68,13 @@ Esegue `ruff check`, `mypy app` (strict) e `pytest` in sequenza.
 
 ```
 app/
-├── main.py         # FastAPI + lifespan (config reload, auth purge, metrics init) + auth gate +
-│                   # rate limiting + /health + mount static + endpoint di esempio
-├── config.py       # ConfigManager (redberry_webkit) con i default runtime-editable dello scaffold
-├── metrics.py      # MetricsStore (redberry_webkit) su data/metrics.db
+├── main.py         # le route del progetto (endpoint di esempio) + avvio: `run("app.main:app", web)`
+├── core.py         # `web = create_app(AppSpec(...))`: tutto il resto (login, gate /ui, /health,
+│                   # /ui/config, log, rate limit, config reload) viene da redberry_webkit.bootstrap
 ├── libs/           # logica pura specifica del progetto — example.py è un placeholder da sostituire
 └── ui/
-    ├── router.py   # /login /auth/login /auth/logout (AuthManager)
-    ├── layout.py   # WebLayout (redberry_webkit.web), NAV_ITEMS, CONFIG_FIELDS
-    └── pages.py    # dashboard (HTMX polling) + pagina Config
+    ├── layout.py   # APP_NAME, NAV_ITEMS, CONFIG_FIELDS
+    └── pages.py    # dashboard (HTMX polling)
 static/             # htmx.min.js (vendored) + app.css del progetto
 scripts/            # run/checks (bat+sh), set_password.py
 data/               # auth.json, metrics.db, logs/ — gitignored
