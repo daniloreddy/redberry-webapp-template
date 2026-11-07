@@ -12,25 +12,16 @@ timezone, metrics) vengono da
 repo aggiunge solo il wiring applicativo (`main.py`, routing, pagine
 Jinja2/HTMX, Docker, script).
 
-## Quick start (locale)
+## Primo avvio (da zero)
 
-```bash
-# Windows
-scripts\run.bat --dev
+Requisiti: Python 3.12+.
 
-# Linux / Mac
-scripts/run.sh --dev
-```
+1. Copia `.env.example` in `.env` (i default vanno bene in locale).
+2. Avvia: `scripts\run.bat` (Windows) oppure `scripts/run.sh` (Linux/Mac). Al primo avvio crea la venv e installa le dipendenze.
+3. In un secondo terminale imposta la password: `python scripts/set_password.py`.
+4. Apri http://127.0.0.1:8000/ui e accedi con quella password.
 
-Il primo avvio crea il virtualenv e installa le dipendenze. Copia
-`.env.example` in `.env` prima del primo avvio e imposta la password:
-
-```bash
-python scripts/set_password.py
-```
-
-Server su `http://127.0.0.1:8000`. Dashboard su `http://127.0.0.1:8000/ui`
-(richiede login).
+Ogni comando può essere lanciato dalla root del progetto. Se qualcosa non parte: `scripts\checks.bat` / `scripts/checks.sh`.
 
 ## Configurazione (`.env`)
 
@@ -90,6 +81,24 @@ static/             # htmx.min.js (vendored) + app.css del progetto
 scripts/            # run/checks (bat+sh), set_password.py
 data/               # auth.json, metrics.db, logs/ — gitignored
 ```
+
+## Produzione
+
+**Avvio.** Sotto systemd/supervisor usa `scripts/run.sh` (fa `exec`, quindi `SIGTERM` arriva a Python), oppure Docker:
+```bash
+docker compose up -d       # immagine da GHCR
+```
+
+**Password dashboard.** Senza password il server parte ma ogni login fallisce. Sul server, in un terminale
+vero (via ssh: `ssh -t`), dalla root del progetto e con lo **stesso utente Unix del servizio**:
+```bash
+.venv/bin/python scripts/set_password.py      # Docker: docker compose exec <servizio> python scripts/set_password.py
+```
+Scrive `data/auth.json` (cartella fissa `data/` nella root del progetto). Dopo il **primo** set riavvia il servizio.
+
+**Aggiornare il template.** `copier update --trust --defaults` (vedi sotto). `AGENTS.md`, `CLAUDE.md`,
+`README.md` e `.env.example` non vengono toccati dall'update: sono tuoi.
+
 
 ## Allineamento al template
 
