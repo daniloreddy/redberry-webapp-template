@@ -12,6 +12,12 @@ github_owner:
   help: "Owner GitHub per l'immagine GHCR (ghcr.io/<owner>/...)"
   default: "daniloreddy"
 
+_skip_if_exists:
+  - "AGENTS.md"
+  - "CLAUDE.md"
+  - "README.md"
+  - "config.example.yaml"
+
 _exclude:
   - "copier.yml"
   - ".git"
