@@ -2,10 +2,11 @@
    status pills and .wk-table-wrap come from the shared /ui/_assets/app.css (redberry-webkit);
    override tokens here, never redefine the chrome. */
 
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.cards { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.cards > .card { flex: 1 1 160px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-.card-label { color: var(--muted); font-size: 12px; text-transform: uppercase; }
-.card-value { font-size: 24px; font-weight: 700; }
+.card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.card-value { font-size: 22px; font-weight: 700; }
 .card-value.primary { color: var(--primary); }
 .card-value.positive { color: var(--positive); }
 .card-value.negative { color: var(--negative); }
