@@ -38,7 +38,7 @@ instead of staying stuck at the initial copy.
 6. Replace `GET /api/v1/example` in `app/main.py` with the real endpoints,
    keeping the `@limiter.limit(...)` + `metrics.record(...)` pattern.
 7. Update `requirements.txt` with the project's specific dependencies.
-8. Copy `.env.example` to `.env`, set the password: `python scripts/set_password.py`.
+8. Copy `.env.example` to `.env`, set the password: `scripts/set_password.sh` (Windows: `set_password.bat`).
 
 ### Updating a derived project when the scaffold changes
 
@@ -202,3 +202,9 @@ Copier-"owned" file):
   alignment, not a legitimate customization. Usage:
   `python scripts/align_to_template.py <project-path> --app-name "Project
   name" [--report out.md]`.
+
+## Releases — tag every change
+
+Copier resolves `copier copy` / `copier update` to the **latest git tag**, not `HEAD`. After every pushed change to
+the scaffold, create and push a new `vX.Y.Z` tag (minor bump for structure changes), otherwise new projects are
+silently generated from the old tag. Check with `git tag --sort=-v:refname | head -3`.

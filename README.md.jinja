@@ -18,7 +18,7 @@ Requisiti: Python 3.12+.
 
 1. Copia `.env.example` in `.env` (i default vanno bene in locale).
 2. Avvia: `scripts\run.bat` (Windows) oppure `scripts/run.sh` (Linux/Mac). Al primo avvio crea la venv e installa le dipendenze.
-3. In un secondo terminale imposta la password: `python scripts/set_password.py`.
+3. In un secondo terminale imposta la password: `scripts\set_password.bat` (Windows) oppure `scripts/set_password.sh` (Linux/Mac).
 4. Apri http://127.0.0.1:8000/ui e accedi con quella password.
 
 Ogni comando può essere lanciato dalla root del progetto. Se qualcosa non parte: `scripts\checks.bat` / `scripts/checks.sh`.
@@ -76,7 +76,7 @@ app/
     ├── layout.py   # APP_NAME, NAV_ITEMS, CONFIG_FIELDS
     └── pages.py    # dashboard (HTMX polling)
 static/             # htmx.min.js (vendored) + app.css del progetto
-scripts/            # run/checks (bat+sh), set_password.py
+scripts/            # run/checks/set_password (bat+sh), set_password.py
 data/               # auth.json, metrics.db, logs/ — gitignored
 ```
 
@@ -90,7 +90,7 @@ docker compose up -d       # immagine da GHCR
 **Password dashboard.** Senza password il server parte ma ogni login fallisce. Sul server, in un terminale
 vero (via ssh: `ssh -t`), dalla root del progetto e con lo **stesso utente Unix del servizio**:
 ```bash
-.venv/bin/python scripts/set_password.py      # Docker: docker compose exec <servizio> python scripts/set_password.py
+scripts/set_password.sh      # Docker: docker compose exec <servizio> python scripts/set_password.py
 ```
 Scrive `data/auth.json` (cartella fissa `data/` nella root del progetto). Dopo il **primo** set riavvia il servizio.
 
