@@ -2,6 +2,7 @@
 
     python tools/check_template.py            # scaffold, invariants, the scaffold's own tests
     python tools/check_template.py --fast     # skip the scaffold's own tests (ruff + pytest)
+    python tools/check_template.py --pin      # only: the pinned webkit tag equals the webkit's version
 
 Checks: the scaffold generates; .gitattributes / CRLF .bat / LF .sh / CI / AGENTS.md + one-line CLAUDE.md
 pointer / README sections; the pinned redberry-webkit tag is the webkit's current version; every documented
@@ -130,7 +131,14 @@ def scaffold_tests(dest: Path) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fast", action="store_true", help="skip the scaffold's own ruff + pytest")
+    ap.add_argument("--pin", action="store_true", help="only check that the template pins the webkit's version")
     args = ap.parse_args()
+    if args.pin:
+        check_pin()
+        if failures:
+            print("Push the webkit only after bumping the pin in redberry-webapp-template/requirements.txt.")
+            return 1
+        return 0
     with tempfile.TemporaryDirectory(prefix="template-") as tmp:
         dest = Path(tmp) / "app"
         if scaffold(dest):
