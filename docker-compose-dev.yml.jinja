@@ -1,7 +1,7 @@
 services:
   {{ app_slug }}:
     build: .
-    container_name: {{ app_slug }}-dev
+    container_name: {{ app_slug | replace('_', '-') }}-dev
     restart: "no"
     ports:
       - "${PORT:-8000}:${PORT:-8000}"

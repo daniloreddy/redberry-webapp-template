@@ -1,7 +1,7 @@
 services:
   {{ app_slug }}:
-    image: ghcr.io/{{ github_owner }}/{{ app_slug }}:latest
-    container_name: {{ app_slug }}
+    image: ghcr.io/{{ github_owner }}/{{ app_slug | replace('_', '-') }}:latest
+    container_name: {{ app_slug | replace('_', '-') }}
     restart: unless-stopped
     ports:
       - "${HOST:-127.0.0.1}:${PORT:-8000}:${PORT:-8000}"  # HOST=0.0.0.0 per LAN / reverse proxy / esposizione diretta
