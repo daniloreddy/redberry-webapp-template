@@ -13,6 +13,7 @@ TEMPLATE_ROOT = Path(__file__).resolve().parent.parent
 # After alignment these must be byte-identical to the generated skeleton — any divergence
 # here is a bug in the alignment, not a legitimate per-project customization.
 TEMPLATE_OWNED_FILES = {
+    "app/__main__.py",
     "app/main.py",
     "app/core.py",
     "app/ui/auth.py",

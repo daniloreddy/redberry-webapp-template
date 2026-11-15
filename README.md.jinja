@@ -68,7 +68,8 @@ Esegue `ruff check`, `mypy app` (strict) e `pytest` in sequenza.
 
 ```
 app/
-├── main.py         # le route del progetto (endpoint di esempio) + avvio: `run("app.main:app", web)`
+├── __main__.py     # avvio locale (`python -m app`, usato da scripts/run.*): `run("app.main:app", web)`
+├── main.py         # le route del progetto (endpoint di esempio); niente blocco `__main__`
 ├── core.py         # `web = create_app(AppSpec(...))`: tutto il resto (login, gate /ui, /health,
 │                   # /ui/config, log, rate limit, config reload) viene da redberry_webkit.bootstrap
 ├── libs/           # logica pura specifica del progetto — example.py è un placeholder da sostituire

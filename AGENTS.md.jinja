@@ -14,9 +14,10 @@ TODO: una frase su cosa fa l'app.
 
 ```
 app/
-├── main.py              L'entrypoint E l'app FastAPI (app = FastAPI(...) a livello
-│                         modulo) — auth gate, lifespan (background task), health check,
-│                         `if __name__ == "__main__":` per l'avvio locale.
+├── __main__.py          Avvio locale (`python -m app`, da scripts/run.*): solo
+│                         `run("app.main:app", web)`. Mai codice applicativo qui.
+├── main.py              L'app FastAPI (`app = web.app` a livello modulo) + router/route
+│                         del progetto. Niente blocco `if __name__ == "__main__":`.
 ├── core.py               `web = create_app(AppSpec(...))` (redberry_webkit.bootstrap): nome, slug,
 │                         menu, campi config. Estendi CONFIG_DEFAULTS/SECRET_KEYS qui. Espone
 │                         web.app/config/auth/metrics/layout/limiter/verify_api_token.
@@ -37,9 +38,11 @@ TODO: mappa di eventuali package aggiuntivi non appena il progetto ne ha.
 
 ## Decisioni chiave
 
-- **Un solo entrypoint**: `app/main.py` è insieme l'app FastAPI (`app = FastAPI(...)`
-  a livello modulo) e il launcher (`if __name__ == "__main__":` con `uvicorn.run(...)`)
-  — niente file `server.py` separato (uvicorn.md §2).
+- **App e launcher separati**: `app/main.py` è l'app (importata da uvicorn come
+  `"app.main:app"`, sia in locale sia nel `CMD` Docker), `app/__main__.py` il launcher
+  locale (`python -m app`). Se il launcher fosse `main.py` stesso, `python -m app.main`
+  lo eseguirebbe due volte (come `__main__` e poi come `app.main` importato da uvicorn):
+  router e `web.add_background(...)` registrati due volte (uvicorn.md §2).
 - **UI sotto `/ui`**, mai su root — è il confine che rende univoco cosa è protetto da
   cookie (`/ui/*`) e cosa da Bearer opt-in (il resto) — vedi `_auth_gate` in
   `redberry_webkit/bootstrap.py`. `/ui/_assets` (app.css di webkit) e `/ui/_static` (htmx, css

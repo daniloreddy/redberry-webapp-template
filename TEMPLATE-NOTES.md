@@ -61,7 +61,7 @@ Since it was converted into a [Copier](https://copier.readthedocs.io/)
 template, files that contain placeholders (`app/main.py.jinja`,
 `app/core.py.jinja`, `app/ui/pages.py.jinja`, `app/ui/layout.py.jinja`,
 `docker-compose*.yml.jinja`) exist only with a `.jinja` suffix in the source
-— Copier strips it at generation time. This means **`python -m app.main`,
+— Copier strips it at generation time. This means **`python -m app`,
 `pytest`, `mypy app` do NOT work when run directly in this repo** (the real
 `.py` files don't exist until you generate an instance).
 

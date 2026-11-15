@@ -12,4 +12,4 @@ if not exist "venv\Lib\site-packages\fastapi" (
     pip install -r requirements.txt
 )
 
-python -m app.main %*
+python -m app %*
