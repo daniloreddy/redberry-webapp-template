@@ -36,8 +36,14 @@ def ok(msg: str) -> None:
     print(f"  ok   {msg}")
 
 
+def _which(name: str) -> str:
+    # Git hooks run from GUIs (VS Code) with a PATH that lacks copier: fall back to this repo's own venv.
+    venv_bin = TEMPLATE / "venv" / ("Scripts" if os.name == "nt" else "bin")
+    return shutil.which(name) or shutil.which(name, path=str(venv_bin)) or name
+
+
 def run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-    exe = shutil.which(cmd[0]) or cmd[0]
+    exe = _which(cmd[0])
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}  # git hooks export GIT_INDEX_FILE etc.
     return subprocess.run([exe, *cmd[1:]], cwd=cwd, env=env, capture_output=True, text=True, timeout=600)
 
