@@ -21,8 +21,7 @@ def _card(label: str, value: str, tone: str = "primary") -> Markup:
 
 def _row(r: RequestRow) -> Markup:
     return Markup(
-        "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>"
-        '<td class="ua" title="{}">{}</td></tr>'
+        '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td class="ua" title="{}">{}</td></tr>'
     ).format(
         r.timestamp,
         r.ip or "—",

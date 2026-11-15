@@ -62,7 +62,8 @@ scripts\checks.bat
 scripts/checks.sh
 ```
 
-Esegue `ruff check`, `mypy app` (strict) e `pytest` in sequenza.
+Esegue `ruff check`, `ruff format --check` (formato e fine riga LF; si corregge con `ruff format .`),
+`mypy app` (strict) e `pytest` in sequenza.
 
 ## Struttura del progetto
 

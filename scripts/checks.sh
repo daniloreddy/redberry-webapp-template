@@ -14,6 +14,7 @@ fi
 
 echo "=== ruff ==="
 ruff check .
+ruff format --check .
 
 echo "=== mypy ==="
 mypy app

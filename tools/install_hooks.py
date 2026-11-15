@@ -48,9 +48,16 @@ def main() -> int:
     ok &= write(TEMPLATE, "pre-push", f'exec python "{check}"')
     py = "venv/Scripts/python.exe" if sys.platform == "win32" else ".venv/bin/python"
     pin = f'python "{check}" --pin'
-    checks = f'{py} -m ruff check . && {py} -m mypy redberry_webkit && {py} -m pytest -q && {pin}'
+    checks = f"{py} -m ruff check . && {py} -m mypy redberry_webkit && {py} -m pytest -q && {pin}"
     ok &= write(WEBKIT, "pre-push", f'cd "{WEBKIT.as_posix()}" && {checks}')
-    for name in ("redberry-webkit-ui", "redberry-webkit", "redberry-webkit-go", "redberry-webkit-j", "redberry-webapp-template-go", "redberry-webapp-template-j"):
+    for name in (
+        "redberry-webkit-ui",
+        "redberry-webkit",
+        "redberry-webkit-go",
+        "redberry-webkit-j",
+        "redberry-webapp-template-go",
+        "redberry-webapp-template-j",
+    ):
         remove_old(TEMPLATE.parent / name)
     return 0 if ok else 1
 

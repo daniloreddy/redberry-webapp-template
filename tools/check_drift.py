@@ -34,9 +34,7 @@ _VERBATIM_PATHS = [
 
 def _find_projects(root: Path) -> list[Path]:
     return sorted(
-        p.parent
-        for p in root.glob("*/.copier-answers.yml")
-        if p.parent.resolve() != _TEMPLATE_ROOT.resolve()
+        p.parent for p in root.glob("*/.copier-answers.yml") if p.parent.resolve() != _TEMPLATE_ROOT.resolve()
     )
 
 

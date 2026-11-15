@@ -78,7 +78,10 @@ def check_invariants(dest: Path) -> None:
 
 def check_pin() -> None:
     version = re.search(r'^version\s*=\s*"([^"]+)"', (WEBKIT / "pyproject.toml").read_text(encoding="utf-8"), re.M)
-    pinned = re.search(r"redberry-webkit(?:\[[a-z]+\])? @ git\+\S+@v([\d.]+)", (TEMPLATE / "requirements.txt").read_text(encoding="utf-8"))
+    pinned = re.search(
+        r"redberry-webkit(?:\[[a-z]+\])? @ git\+\S+@v([\d.]+)",
+        (TEMPLATE / "requirements.txt").read_text(encoding="utf-8"),
+    )
     want = version.group(1) if version else "?"
     got = pinned.group(1) if pinned else None
     (ok if got == want else fail)(f"template pins redberry-webkit {got}, webkit is {want}")
@@ -119,7 +122,11 @@ def scaffold_tests(dest: Path) -> None:
                 print((r.stdout + r.stderr)[-800:])
                 return
         marker.write_text(stamp)
-    for cmd in ([str(exe), "-m", "ruff", "check", "."], [str(exe), "-m", "pytest", "-q"]):
+    for cmd in (
+        [str(exe), "-m", "ruff", "check", "."],
+        [str(exe), "-m", "ruff", "format", "--check", "."],
+        [str(exe), "-m", "pytest", "-q"],
+    ):
         r = run(cmd, dest)
         if r.returncode != 0:
             fail(f"scaffold `{' '.join(cmd[1:])}` failed")
