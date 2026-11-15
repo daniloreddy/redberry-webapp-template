@@ -60,8 +60,7 @@ TODO: mappa di eventuali package aggiuntivi non appena il progetto ne ha.
   il config-reload loop chiamano `os._exit(1)` se falliscono con un'eccezione non
   gestita (`_crash_on_task_error` in `redberry_webkit/bootstrap.py`) — un errore *atteso* (es.
   `.env` illeggibile per un attimo) viene invece catturato punto per punto e il
-  loop prosegue. Stesso principio Python-idiomatico dell'equivalente Java
-  (`Runtime.halt(1)`, vedi `~/.claude/rules/java.md` §3) e Go (`os._exit(1)`).
+  loop prosegue.
 - **Docker opt-in ma presente**: due compose (`docker-compose.yml` prod da GHCR,
   `docker-compose-dev.yml` build locale) — vedi docker.md per il pattern completo
   (`.env` bind-montato, mai `env_file:`, eccezioni `PORT`/`TZ`/`ports:`).
