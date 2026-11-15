@@ -1,203 +1,207 @@
 ---
 name: align-to-template
-description: Use when asked to align, update, or migrate an existing FastAPI project to redberry-webapp-template — phrases like "allinea questo progetto al template", "porta X sul template", "aggiorna il progetto al template". Drives alignment via `copier update` (safe 3-way merge) plus a reviewed diff for drift the template never touched — never a blind file overwrite.
+description: Use when asked to align, update, or migrate an existing FastAPI project to redberry-webapp-template / the latest redberry-webkit — phrases like "allinea questo progetto al template", "porta X sul template", "aggiorna il progetto al template", "allinea alle ultime versioni di webkit/template". Drives alignment via `copier update` (safe 3-way merge) plus a reviewed diff for drift the template never touched — never a blind file overwrite.
 ---
 
 # Align to Template
 
-Guida un allineamento completo di un progetto esistente a `redberry-webapp-template`.
+Guida un allineamento completo di un progetto esistente a `redberry-webapp-template`
+(e quindi al pin `redberry-webkit` del template).
 
-> **Stack UI cambiato (webkit ≥ v0.5.0)**: il template ora usa Jinja2 + HTMX (`~/.claude/guidelines/web-py.md`), non NiceGUI. I grep e le checklist `nicegui.md` qui sotto valgono solo per progetti ancora su NiceGUI; allineare un progetto NiceGUI al template = **migrarlo** a `redberry_webkit.web` (checklist in `web-py.md` §7), non un `copier update` banale.
+> **Stato attuale del template**: Jinja2 + HTMX (`~/.claude/guidelines/web-py.md`), wiring comune
+> (auth, login/logout, gate `/ui/*`, `/health`, `/ui/config`, logging, rate limit, security
+> headers, lifespan loops, CLI) in `redberry_webkit.bootstrap` (webkit ≥ v0.7.0). Il progetto
+> contiene solo `app/core.py` (`web = create_app(AppSpec(...))`), `app/main.py` (`app = web.app`
+> + route del progetto), `app/__main__.py` (launcher `python -m app`), `app/libs/` (logica),
+> `app/ui/{layout,pages}.py`. Un progetto con bootstrap copiato a mano (proprio `AuthManager`,
+> `_auth_gate`, router di login, `uvicorn.run`) va **migrato** a quel modello: il wiring si
+> cancella dal progetto, non si riallinea. Checklist: `web-py.md` §7.
 
 **Perché questa skill esiste, e perché questa versione**: la v1 usava
 `scripts/align_to_template.py` per generare una skeleton fresca e poi **sostituiva
 integralmente** i file "owned dal template" (main.py, Dockerfile, docker-compose*,
-login.html, script). Testata su un progetto reale (`news_scraper`), quella
-sostituzione ha cancellato 316 righe di route applicative da `app/main.py` e
-personalizzazioni Docker legittime e necessarie (`NICEGUI_STORAGE_PATH`, `shm_size`
-per Playwright, volume `./debug`) — nessuno di questi file è mai puro boilerplate
-in un progetto maturo. "Sostituzione integrale" è l'errore opposto a quello che la
-skill doveva risolvere: non lascia più pezzi vecchi indietro, ma distrugge lavoro
-legittimo. **Non farlo mai più.**
+script). Testata su un progetto reale (`news_scraper`), quella sostituzione ha cancellato
+316 righe di route applicative da `app/main.py` e personalizzazioni Docker legittime
+(`shm_size` per Playwright, volume `./debug`) — nessuno di questi file è mai puro
+boilerplate in un progetto maturo. **Non farlo mai più.**
+
+## Strumenti
+
+- `copier` non è nel PATH: usa `C:/redberry/src/redberry-webapp-template/venv/Scripts/copier.exe`.
+- `scripts/align_to_template.py` invoca `copier` per nome: lancialo con
+  `PATH="C:/redberry/src/redberry-webapp-template/venv/Scripts:$PATH"`.
+- `tools/check_versions.py` (repo template): stato template/webkit di tutti i progetti
+  fratelli. Usalo per capire da dove parti e per la verifica finale (`ok`).
 
 ## I due meccanismi, in ordine — non intercambiabili
 
 1. **`copier update`** — merge a 3 vie basato su `.copier-answers.yml`: confronta
    template-alla-generazione vs template-attuale vs stato-attuale-del-progetto.
-   Applica solo ciò che il template ha davvero cambiato; lascia intatto tutto il
-   resto, comprese le personalizzazioni dentro file "owned dal template". Dove non
-   riesce a mergiare automaticamente, lascia conflict marker (`<<<<<<<`) — mai
-   silenzio. **Questo è il meccanismo primario, sempre da provare per primo.**
-2. **`scripts/align_to_template.py`** — genera una skeleton fresca e confronta con
-   il progetto target. Serve solo per **visibilità**: trova drift che il template
-   non ha mai toccato (il progetto si è allontanato dalle convenzioni per conto
-   suo) o file completamente mancanti/aggiuntivi. **Non scrive mai nulla da solo.**
-   Ogni riga del suo report è materia di revisione manuale, mai di sostituzione
-   automatica.
+   Applica solo ciò che il template ha davvero cambiato; lascia intatto il resto.
+   Dove non riesce a mergiare lascia conflict marker (`<<<<<<< before updating` /
+   `>>>>>>> after updating`, file in stato `UU`) — mai silenzio. Può anche
+   **cancellare** file che il template ha rimosso (es. `app/config.py`,
+   `app/ui/router.py`): controlla che il codice del progetto non li importi più.
+   **Meccanismo primario, sempre da provare per primo.**
+2. **`scripts/align_to_template.py`** — genera una skeleton fresca e confronta con il
+   progetto target. Solo **visibilità**: drift che il template non ha mai toccato, file
+   mancanti/aggiuntivi. **Non scrive mai nulla da solo.**
 
 ## Input
 
 `args`: `<path-progetto> [app_name] [app_slug]`
 
-Se `app_name`/`app_slug` non sono forniti, cercali nel progetto target prima di
-procedere (es. `grep -r "slug=" app/core.py`, `_APP_NAME` in
-`app/ui/pages.py`) — non inventarli.
+Se `app_name`/`app_slug` non sono forniti, leggili da `.copier-answers.yml` o da
+`app/core.py` (`slug=`) / `app/ui/layout.py` (`APP_NAME`) — non inventarli.
 
 ## Passi
 
 ### 0. Sicurezza — sempre prima di toccare qualunque file
 
-`git status` sul progetto target. Se ci sono modifiche non committate, `git stash
-push -u` prima di procedere (recuperabile, mai perso). Non chiedere conferma per lo
-stash stesso — è reversibile — ma se lo stash contiene lavoro sostanziale, segnalalo
-esplicitamente all'utente prima di continuare.
+- `git status` sul progetto target. Modifiche non committate → `git stash push -u`
+  (reversibile; se contiene lavoro sostanziale, segnalalo all'utente).
+- Verifica che la venv funzioni (`venv/Scripts/python -c "import pydantic_core"`): una venv
+  creata con un'altra versione di Python (vedi `venv/pyvenv.cfg` vs `python -V`) ha
+  estensioni compilate per l'ABI sbagliato. In quel caso va ricreata (`venv` è rigenerabile).
 
 ### 1. `copier update` — passo primario
 
-Verifica che il progetto abbia `.copier-answers.yml` (se manca, vedi passo 5 prima
-di procedere). Poi, dalla root del progetto target:
+Dalla root del progetto target (richiede `.copier-answers.yml`; se manca vedi passo 5):
 
 ```
-copier update --trust --defaults
+C:/redberry/src/redberry-webapp-template/venv/Scripts/copier.exe update --trust --defaults
 ```
 
-> `--trust` sempre, su tutti e tre i template (py/go/j): � la convenzione comune. Serve ai template con `_tasks` (go e j convertono `make.bat` in CRLF dopo il render); sugli altri � innocuo.
+> `--trust` sempre, su tutti i template (py/go/j): è la convenzione comune. Serve ai template
+> con `_tasks`; sugli altri è innocuo.
 
-Se il template locale (questo repo) non è ancora taggato/pushato con le modifiche
-che vuoi propagare, punta temporaneamente `_src_path` in `.copier-answers.yml` del
-progetto target al path locale del template (path Windows con `/`, es.
-`C:/redberry/src/redberry-webapp-template` — **non** notazione mingw
-`/c/...`, **non** `file://`: entrambe falliscono con `ValueError: Local template
-must be a directory` su questo setup) e usa `--vcs-ref=HEAD` per non confrontare
-contro l'ultimo tag. Ripristina `_src_path` al valore originale (remote GitHub) a
-fine test/allineamento — non lasciarlo puntato al path locale in modo permanente.
+Se il template locale non è ancora taggato/pushato con le modifiche da propagare, punta
+temporaneamente `_src_path` in `.copier-answers.yml` al path locale (Windows con `/`, es.
+`C:/redberry/src/redberry-webapp-template` — **non** `/c/...`, **non** `file://`) e usa
+`--vcs-ref=HEAD`. Ripristina `_src_path` al remote GitHub a fine lavoro.
 
-Risolvi eventuali conflict marker leggendo entrambi i lati — mai accettare un lato
-alla cieca.
+Risoluzione conflitti:
+
+- Leggi entrambi i lati, mai accettarne uno alla cieca. Per file riscritti in blocco
+  (tipico salto di più minor, es. migrazione a bootstrap) parti dal lato template (render
+  fresco, vedi passo 2) e riporta gli hunk del progetto da `git show HEAD:<file>`.
+- Dopo l'update: `venv/Scripts/python -m pip install -r requirements.dev.txt` (il pin
+  webkit è cambiato; gli script checks non reinstallano se ruff c'è già).
+- `git add -A` per chiudere lo stato `UU`.
 
 ### 2. `align_to_template.py` — visibilità sul resto
 
 ```
-venv/Scripts/python.exe scripts/align_to_template.py <path-progetto> \
-  --app-name "<Nome App>" --app-slug <slug> --report /tmp/align_report.md
+cd C:/redberry/src/redberry-webapp-template
+PATH="$PWD/venv/Scripts:$PATH" venv/Scripts/python.exe scripts/align_to_template.py <path-progetto> \
+  --app-name "<Nome App>" --app-slug <slug> --report <scratchpad>/align_report.md
 ```
 
-Il report ha 4 sezioni (owned-divergenti, comuni-divergenti-attesi, solo-nel-target,
-solo-nello-skeleton). **Nessuna sezione autorizza una scrittura automatica.** Per
-ogni file segnalato:
+Il report ha 5 sezioni (owned-divergenti, comuni-divergenti-attesi, solo-nel-target,
+solo-nello-skeleton, conteggio identici). **Nessuna sezione autorizza una scrittura
+automatica.** Per ogni file segnalato:
 
-- Se `copier update` lo ha già lasciato intatto ed è nella sezione "owned
-  divergente", la divergenza residua è quasi certamente personalizzazione
-  legittima (route applicative, config Docker specifiche) — verificalo leggendo il
-  diff riga per riga, non assumerlo.
-- Se il diff mostra chiaramente un pattern del template rimasto vecchio (es.
-  `pages.py` senza `_page_setup`/`_header`/`_footer`, `main.py` senza
-  `resolve_env_path()`), quella è materia di porting mirato: modifica solo l'hunk
-  interessato, mai il file intero.
-- File "solo nel target" → business logic reale (porta se serve) vs file di
-  lavoro/meta del progetto (lascia stare, verifica solo che non duplichi qualcosa
-  che il template offre già).
-- File "solo nello skeleton" → valuta se il progetto ne ha bisogno.
+- "Owned divergente" dopo `copier update` (tipicamente `app/core.py`, `app/main.py`,
+  `Dockerfile`) = quasi sempre personalizzazione legittima (chiavi config, route, pacchetti
+  apt) — verificalo leggendo il diff, non assumerlo.
+- Pattern del template rimasto vecchio → porting mirato dell'hunk, mai del file intero.
+- "Solo nel target" → business logic (va in `app/libs/` se framework-free) vs file meta.
+- "Solo nello skeleton" → `app/libs/example.py` e il suo test sono placeholder: assenti è
+  corretto. Il resto: valuta se serve.
 
-Se un file non è chiaramente classificabile, chiedi all'utente — non indovinare.
+Se un file non è chiaramente classificabile, chiedi all'utente.
 
 ### 3. Checklist finale — meccanica, non a memoria
 
-Questo passo non è opzionale e non si spunta "a occhio": ruff/mypy/pytest
-verificano che il codice giri, non che sia coerente con le guideline (colori,
-spaziature, pattern Docker/auth). Qui si verifica quello — con grep dove
-possibile, con lettura esplicita dove serve giudizio.
+ruff/mypy/pytest verificano che il codice giri, non che sia coerente con le guideline.
 
-**3a. Grep meccanico (esegui sempre, riporta ogni hit prima di ignorarlo):**
+**3a. Grep meccanico (riporta ogni hit prima di giudicarlo). Mai grep su `.env`: escludilo.**
 
 ```bash
-# nicegui.md — niente hex fuori da login.html; eccezioni legittime: chart
-# rendering (matplotlib/plotting), template PDF (.html.jinja per documenti) —
-# verifica comunque ogni hit, non escluderle a priori dal grep
-grep -rnE "#[0-9A-Fa-f]{3,6}" app/ --include=*.py | grep -v login.html
+# web-py.md §7 / fastapi-auth.md — nessun wiring copiato nel progetto (deve stare in webkit bootstrap)
+grep -rnE "AuthManager\(|_auth_gate|_security_headers|SlowAPIMiddleware|load_dotenv|uvicorn\.run|purge_loop|StaticFiles\(" app/
 
-# nicegui.md — classi Tailwind al posto di Quasar
-grep -rnE '"(text-xl|text-lg|text-sm|font-bold|font-semibold|w-full|p-[0-9]|m-[0-9]|rounded-|bg-gray|bg-white)' app/
+# uvicorn.md §2 — launcher separato, niente __main__ in main.py
+ls app/__main__.py && grep -n '__name__ == "__main__"' app/main.py
 
-# nicegui.md — dark mode hardcoded invece di app.storage.user
-grep -rn "ui.dark_mode(True)\|ui.dark_mode(False)\|ui.dark_mode(value=True)\|ui.dark_mode(value=False)" app/
+# uvicorn.md §1 — env di progetto letto solo DOPO `from app.core import web`
+grep -rn "os.getenv\|os.environ" app/
 
-# docker.md — env_file: è vietato (deve essere bind-mount + ENV_FILE)
+# niente NiceGUI residuo (codice, compose, .gitignore, .dockerignore)
+grep -rn -i "nicegui" --exclude=.env --exclude-dir=venv --exclude-dir=.git --exclude-dir=.mypy_cache .
+
+# docker.md — env_file: vietato (bind-mount + ENV_FILE); niente named volume; TZ su entrambi i compose
 grep -n "env_file:" docker-compose*.yml
-
-# docker.md — named volumes invece di bind mount (pattern sospetto: nome senza ./ o /)
 grep -nE "^\s+- [a-zA-Z_-]+:/[a-z]" docker-compose*.yml
-
-# docker.md §7 — TZ deve essere in environment: su entrambi i compose
 grep -L "TZ=" docker-compose.yml docker-compose-dev.yml
 
-# nicegui.md — NICEGUI_STORAGE_PATH deve puntare dentro un bind mount, non default
-grep -n "NICEGUI_STORAGE_PATH" docker-compose.yml docker-compose-dev.yml
+# uvicorn.md §2 — workers mai esplicito (hit su ThreadPoolExecutor(max_workers=...) è legittimo)
+grep -rn "workers=" app/ Dockerfile docker-compose*.yml
 
-# uvicorn.md §2 — workers non deve mai essere passato esplicitamente
-grep -rn "workers=" app/main.py Dockerfile docker-compose*.yml
-
-# uvicorn.md — docs_url/redoc_url/openapi_url devono essere gated su DEV
-grep -n "docs_url\|redoc_url\|openapi_url" app/main.py
-
-# python.md — niente print() fuori da script CLI (scripts/)
+# python.md — niente print() in app/, niente datetime.now()/fromtimestamp() senza tz
 grep -rn "print(" app/ --include=*.py
-
-# python.md — timezone: niente datetime.now()/fromtimestamp() bare (senza tz=)
 grep -rnE "datetime\.now\(\)|fromtimestamp\([^,)]*\)" app/ --include=*.py
+
+# web-py.md §7 — niente hex nel codice Python (nel CSS di progetto solo dove non esiste un token)
+grep -rnE "#[0-9A-Fa-f]{3,6}" app/ --include=*.py
 ```
 
-Ogni hit va giudicato, non scartato automaticamente: es. hex in un file di
-plotting o in un template PDF sono legittimi, hex in `pages.py`/`components.py`
-no. Segnala esplicitamente cosa hai trovato e perché lo consideri conforme o
-no — non saltare la riga di output.
+Ogni hit va giudicato, non scartato automaticamente. **Drift nominale non è
+un'eccezione accettabile**: lo scopo del template è uniformare. Un pezzo di wiring che
+webkit fornisce già (login, gate, config page, security headers, ...) va rimosso dal
+progetto, non tenuto "perché funziona uguale". Se il progetto ha qualcosa di generico che
+webkit **non** fornisce, proponi all'utente di spostarlo in webkit (nuova minor) invece di
+lasciarlo nel progetto.
 
-**Drift nominale (nomi/struttura diversi ma stesso comportamento) NON è
-un'eccezione accettabile.** Lo scopo del template è uniformare tutte le app
-che ne ereditano — un middleware di auth che fa la stessa cosa ma si chiama
-`ui_auth_gate`/`_UI_SOCKET_PREFIX` invece di `_auth_gate`/`_UI_PREFIX`/
-`_LOGIN_PATHS`/`_UI_BYPASS_PREFIXES` (pattern canonico in `app/main.py.jinja`)
-è materia di fix, non di nota a margine. Non liquidarlo con "funzionalmente
-equivalente, non lo tocco" — allinealo al pattern canonico nello stesso passo
-in cui lo trovi.
+**3b. Lettura esplicita (contro il codice reale, non a memoria):**
+- `fastapi-auth.md` → "New project checklist"
+- `web-py.md` §7
+- `uvicorn.md` §1/§2 → env letto dopo `app.core`, launcher `app/__main__.py`, HOST/PORT via env
+- `docker.md` §2/§5/§6/§7 → bind mount, due compose file, TZ, indirizzo bind
+- `scripts.md` → line endings e exec bit (sotto)
+
+**3c. Line endings e modi file** (`copier update` mergia contenuti, non modi):
 
 ```bash
-# uvicorn.md / fastapi-auth.md — nome canonico del gate middleware e delle sue
-# costanti; qualunque variante (nome diverso, costanti diverse) va allineata
-grep -n "_auth_gate\|_UI_PREFIX\|_LOGIN_PATHS\|_UI_BYPASS_PREFIXES" app/main.py
+git ls-files --eol scripts/            # .bat → w/crlf, .sh → w/lf
+git update-index --chmod=+x scripts/*.sh && git ls-files -s scripts/*.sh   # atteso 100755
 ```
 
-Se il grep non trova questi 4 simboli esatti in `app/main.py`, il middleware
-va riscritto per farli comparire — confrontando riga per riga con
-`redberry-webapp-template/app/main.py.jinja` (il blocco tra `app = FastAPI(`
-e `@app.get("/health")`), non solo "verificato che funzioni allo stesso modo".
+**3d. Docker image name**: il workflow pubblica `ghcr.io/<owner>/<nome repo GitHub>`
+(`github.repository`), il compose usa lo slug con trattini (`app_slug` → `-`). Se il repo
+GitHub ha un nome diverso (es. underscore, suffisso `_py`), `docker compose pull` non trova
+l'immagine: segnalalo all'utente (convenzione: rinominare il repo con trattini).
 
-**3b. Lettura esplicita (contro il codice reale del progetto target, non a memoria):**
-- `fastapi-auth.md` → "New project checklist"
-- `nicegui.md` §11 → checklist completa
-- `uvicorn.md` §1/§2 → resolve_env_path/entrypoint singolo, HOST/PORT via env
-- `docker.md` §2/§5/§6/§7 → bind mount, due compose file, TZ, indirizzo bind
-
-Ogni voce va verificata leggendo il file corrispondente.
+**3e. Documentazione**: `AGENTS.md`, `CLAUDE.md`, `README.md` sono `_skip_if_exists`,
+`copier update` non li tocca mai. Aggiornali a mano: mappa file (`core.py`, `__main__.py`,
+`libs/`), comandi (`python -m app`, `set_password.bat|.sh`), nome immagine/container,
+sezione "Allineamento al template"; `CLAUDE.md` nella forma puntatore
+(`# CLAUDE.md` + `See [AGENTS.md](AGENTS.md) for project guidance.`).
 
 ### 4. Verifica
 
-- `scripts/checks.bat`/`.sh` nel progetto target (ruff/mypy/pytest)
-- Avvio reale e smoke test in browser della golden path
+- `scripts/checks.bat` (Windows; `checks.sh` cerca `.venv`, su Windows non va) oppure gli
+  stessi step a mano con la venv: `ruff check .`, `ruff format --check .`, `mypy app`, `pytest`.
+- Test: le fixture vengono dal template (`web.config`/`web.metrics`/`web.auth` sostituiti su
+  `tmp_path`); i test generici (login, semaforo, docs, root redirect) stanno in webkit e
+  si tolgono dal progetto; **ogni test specifico del progetto va riportato**, non perso.
+- Avvio reale (`python -m app --port <libera>`) e smoke test: `/health`, `/` → `/ui/`,
+  `/ui/` → `/login`, asset, un endpoint API del progetto. Login e pagine UI in browser
+  (tema chiaro/scuro) se il CSS è cambiato. Lo smoke test scrive nel `data/` reale: dillo.
+- `python tools/check_versions.py` nel repo template: il progetto deve risultare `ok`.
 
 ### 5. Adozione Copier (se `.copier-answers.yml` manca)
 
-Genera una skeleton temporanea con `copier copy` usando le risposte del progetto
-(passo 2 già lo fa), poi copia `.copier-answers.yml` dalla skeleton nel progetto
-target. Da quel momento `copier update` è disponibile per i prossimi allineamenti.
+Genera una skeleton temporanea con `copier copy` usando le risposte del progetto (passo 2
+già lo fa), poi copia `.copier-answers.yml` dalla skeleton nel progetto target. Da quel
+momento `copier update` è disponibile.
 
 ## Cosa NON fare
 
-- **Non sostituire mai un file per intero** solo perché è nella lista "owned dal
-  template" del report — quella lista è solo classificazione per il diff, non
-  un'autorizzazione a sovrascrivere.
-- Non saltare `copier update` per andare dritti al confronto skeleton-fresca — è il
-  meccanismo più sicuro, va sempre provato per primo.
+- **Non sostituire mai un file per intero** solo perché è "owned dal template" nel report.
+- Non saltare `copier update` per andare dritti al confronto con la skeleton fresca.
 - Non spuntare la checklist del passo 3 senza aver letto il file corrispondente.
-- Non inventare `app_name`/`app_slug` se non espliciti: cercarli nel progetto.
-- Non lasciare `_src_path` puntato al template locale dopo un test/allineamento.
+- Non inventare `app_name`/`app_slug`.
+- Non lasciare `_src_path` puntato al template locale.
+- Non leggere né greppare `.env` (`python.md` §4).
+- Non committare né pushare senza l'ok dell'utente.
