@@ -88,10 +88,13 @@ cp app/main.py.jinja /tmp/webapp-template-src/app/main.py.jinja
 copier copy --trust /tmp/webapp-template-src /tmp/skeleton-smoke-test --data app_name="Smoke Test" --defaults
 ```
 
-`.github/workflows/docker-publish.yml` is the only file copied 1:1 without
-rendering (it uses `${{ }}` for GitHub Actions expressions, which collides
-with Jinja's default syntax — this is why the rendering mechanism is opt-in
-per-file via the `.jinja` suffix, not global).
+`.github/workflows/docker-publish.yml.jinja` is wrapped whole in
+`{% raw %}...{% endraw %}` (it uses `${{ }}` for GitHub Actions expressions,
+which collides with Jinja's default syntax — this is why the rendering
+mechanism is opt-in per-file via the `.jinja` suffix, not global). The
+`.jinja` suffix also keeps GitHub from running the workflow on the template
+repo itself (no root `Dockerfile` there, the build would fail); generated
+projects get a plain `docker-publish.yml`.
 
 ## Shared dependencies
 

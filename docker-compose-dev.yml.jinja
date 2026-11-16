@@ -4,11 +4,11 @@ services:
     container_name: {{ app_slug | replace('_', '-') }}-dev
     restart: "no"
     ports:
-      - "${PORT:-8000}:${PORT:-8000}"
+      - "${PORT:-{{ default_port }}}:${PORT:-{{ default_port }}}"
     environment:
       - PYTHONUNBUFFERED=1
       - TZ=${TZ:-UTC}
-      - PORT=${PORT:-8000}
+      - PORT=${PORT:-{{ default_port }}}
       - ENV_FILE=/app/hostcfg/.env
     volumes:
       - .:/app/hostcfg

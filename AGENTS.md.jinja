@@ -43,6 +43,9 @@ TODO: mappa di eventuali package aggiuntivi non appena il progetto ne ha.
   locale (`python -m app`). Se il launcher fosse `main.py` stesso, `python -m app.main`
   lo eseguirebbe due volte (come `__main__` e poi come `app.main` importato da uvicorn):
   router e `web.add_background(...)` registrati due volte (uvicorn.md §2).
+- **Init all'avvio con `web.add_startup(...)`** (webkit ≥v0.13.0): schema DB, migrazioni,
+  directory richieste girano nel lifespan prima dei task di background; un'eccezione blocca
+  l'avvio (fail-fast) invece di emergere alla prima richiesta. Mai init a import-time.
 - **UI sotto `/ui`**, mai su root — è il confine che rende univoco cosa è protetto da
   cookie (`/ui/*`) e cosa da Bearer opt-in (il resto) — vedi `_auth_gate` in
   `redberry_webkit/bootstrap.py`. `/ui/_assets` (app.css di webkit) e `/ui/_static` (htmx, css

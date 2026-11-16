@@ -1,4 +1,6 @@
-FROM python:3.12-slim
+# Debian release pinned (not bare "python:3.12-slim", which follows the current stable): apt package names
+# change between releases (e.g. bookworm -> trixie) and would break builds that install extra packages.
+FROM python:3.12-slim-bookworm
 
 RUN useradd --create-home --home-dir /home/appuser --shell /usr/sbin/nologin appuser
 ENV HOME=/home/appuser
@@ -22,4 +24,4 @@ RUN mkdir -p /app/data \
 
 USER appuser
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-{{ default_port }}}"]

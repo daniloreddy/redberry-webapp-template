@@ -75,6 +75,13 @@ C:/redberry/src/redberry-webapp-template/venv/Scripts/copier.exe update --trust 
 > `--trust` sempre, su tutti i template (py/go/j): è la convenzione comune. Serve ai template
 > con `_tasks`; sugli altri è innocuo.
 
+> **Domande nuove + `--defaults`**: una domanda aggiunta dopo l'ultimo update del progetto
+> prende in silenzio il default. Prima dell'update confronta `copier.yml` con
+> `.copier-answers.yml` e passa le risposte reali con `-d chiave=valore`. Caso noto:
+> `default_port` (da v0.3.10, default 8000) → `-d default_port=<porta reale del progetto>`
+> (quella di `.env.example`/compose/tunnel), altrimenti Dockerfile/compose/`.env.example`
+> tornano a 8000.
+
 Se il template locale non è ancora taggato/pushato con le modifiche da propagare, punta
 temporaneamente `_src_path` in `.copier-answers.yml` al path locale (Windows con `/`, es.
 `C:/redberry/src/redberry-webapp-template` — **non** `/c/...`, **non** `file://`) e usa

@@ -19,7 +19,7 @@ Requisiti: Python 3.12+.
 1. Copia `.env.example` in `.env` (i default vanno bene in locale).
 2. Avvia: `scripts\run.bat` (Windows) oppure `scripts/run.sh` (Linux/Mac). Al primo avvio crea la venv e installa le dipendenze.
 3. In un secondo terminale imposta la password: `scripts\set_password.bat` (Windows) oppure `scripts/set_password.sh` (Linux/Mac).
-4. Apri http://127.0.0.1:8000/ui e accedi con quella password.
+4. Apri http://127.0.0.1:{{ default_port }}/ui e accedi con quella password.
 
 Ogni comando può essere lanciato dalla root del progetto. Se qualcosa non parte: `scripts\checks.bat` / `scripts/checks.sh`.
 
@@ -30,7 +30,7 @@ Vedi `.env.example` per l'elenco completo. Variabili principali:
 | Variabile | Default | Note |
 |---|---|---|
 | `HOST` | `127.0.0.1` | Bind locale. |
-| `PORT` | `8000` | |
+| `PORT` | `{{ default_port }}` | |
 | `DEV` | `false` | `true` abilita `--reload` di uvicorn e riattiva `/docs`/`/redoc`. |
 | `TZ` | `UTC` | Fuso IANA per i timestamp mostrati in dashboard. |
 | `TRUSTED_PROXIES` | `127.0.0.1` | IP dei reverse proxy fidati, usati per risolvere l'IP client reale. |

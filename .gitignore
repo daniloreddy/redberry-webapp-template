@@ -8,3 +8,9 @@ data/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.claude/settings.local.json
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+*.log
