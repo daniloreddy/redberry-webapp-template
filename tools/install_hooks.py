@@ -3,7 +3,9 @@
     python tools/install_hooks.py
 
 Template: pre-commit runs `tools/check_template.py --fast`, pre-push the full check.
-Webkit: pre-push runs ruff, mypy, pytest and the template pin check (the template must pin the version pushed). Hooks live in .git/hooks (not versioned): rerun after a fresh clone.
+Webkit: pre-push runs ruff, mypy, pytest. Releasing the webkit never depends on the template: the template pin may lag
+(tools/check_template.py and tools/check_versions.py only warn).
+Hooks live in .git/hooks (not versioned): rerun after a fresh clone.
 """
 
 from __future__ import annotations
@@ -47,10 +49,8 @@ def main() -> int:
     ok = write(TEMPLATE, "pre-commit", f'exec python "{check}" --fast')
     ok &= write(TEMPLATE, "pre-push", f'exec python "{check}"')
     py = "venv/Scripts/python.exe" if sys.platform == "win32" else ".venv/bin/python"
-    pin = f'python "{check}" --pin'
     checks = (
-        f"{py} -m ruff check . && {py} -m ruff format --check . && {py} -m mypy redberry_webkit"
-        f" && {py} -m pytest -q && {pin}"
+        f"{py} -m ruff check . && {py} -m ruff format --check . && {py} -m mypy redberry_webkit && {py} -m pytest -q"
     )
     ok &= write(WEBKIT, "pre-push", f'cd "{WEBKIT.as_posix()}" && {checks}')
     for name in (

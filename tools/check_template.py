@@ -2,11 +2,11 @@
 
     python tools/check_template.py            # scaffold, invariants, the scaffold's own tests
     python tools/check_template.py --fast     # skip the scaffold's own tests (ruff + pytest)
-    python tools/check_template.py --pin      # only: the pinned webkit tag equals the webkit's version
 
 Checks: the scaffold generates; .gitattributes / CRLF .bat / LF .sh / CI / AGENTS.md + one-line CLAUDE.md
-pointer / README sections; the pinned redberry-webkit tag is the webkit's current version; every documented
-`copier copy|update` carries --trust; the scaffold's ruff and pytest pass.
+pointer / README sections; every documented
+`copier copy|update` carries --trust; the scaffold's ruff and pytest pass. A template pin older than the local
+webkit version is only a warning: the webkit is released on its own, the template catches up when it wants.
 """
 
 from __future__ import annotations
@@ -90,7 +90,12 @@ def check_pin() -> None:
     )
     want = version.group(1) if version else "?"
     got = pinned.group(1) if pinned else None
-    (ok if got == want else fail)(f"template pins redberry-webkit {got}, webkit is {want}")
+    if got is None:
+        fail("template requirements.txt has no redberry-webkit @ git+...@vX pin")
+    elif got == want:
+        ok(f"template pins redberry-webkit {got}")
+    else:
+        print(f"  WARN template pins redberry-webkit {got}, local webkit is {want} (bump when ready)")
 
 
 def check_trust() -> None:
@@ -144,14 +149,7 @@ def scaffold_tests(dest: Path) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fast", action="store_true", help="skip the scaffold's own ruff + pytest")
-    ap.add_argument("--pin", action="store_true", help="only check that the template pins the webkit's version")
     args = ap.parse_args()
-    if args.pin:
-        check_pin()
-        if failures:
-            print("Push the webkit only after bumping the pin in redberry-webapp-template/requirements.txt.")
-            return 1
-        return 0
     with tempfile.TemporaryDirectory(prefix="template-") as tmp:
         dest = Path(tmp) / "app"
         if scaffold(dest):

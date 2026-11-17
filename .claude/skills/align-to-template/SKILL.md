@@ -27,6 +27,9 @@ boilerplate in un progetto maturo. **Non farlo mai più.**
 
 ## Strumenti
 
+- Pin webkit nuovo o feature webkit da sviluppare insieme al progetto: leggi prima
+  `~/.claude/guidelines/webkit-release.md` (editable install, pin solo dopo il push del tag).
+
 - `copier` non è nel PATH: usa `C:/redberry/src/redberry-webapp-template/venv/Scripts/copier.exe`.
 - `scripts/align_to_template.py` invoca `copier` per nome: lancialo con
   `PATH="C:/redberry/src/redberry-webapp-template/venv/Scripts:$PATH"`.
