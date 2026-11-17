@@ -35,7 +35,9 @@ Vedi `.env.example` per l'elenco completo. Variabili principali:
 | `TZ` | `UTC` | Fuso IANA per i timestamp mostrati in dashboard. |
 | `TRUSTED_PROXIES` | `127.0.0.1` | IP dei reverse proxy fidati, usati per risolvere l'IP client reale. |
 | `AUTH_SECURE_COOKIE` | `0` | `1` forza il flag `Secure` sul cookie anche senza `X-Forwarded-Proto: https`. |
+{% if has_api -%}
 | `API_TOKENS` | *(vuoto)* | Bearer token comma-separated per eventuali endpoint API fuori da `/ui`. Genera un token con `scripts/generate_token.sh` (Windows: `generate_token.bat`). |
+{% endif -%}
 | `RATE_LIMIT` | `20/minute` | Limite (sintassi slowapi) sugli endpoint API — hot-reload, editabile da `/ui/config`. |
 | `REFRESH_ENABLED` / `REFRESH_INTERVAL` | `true` / `5` | Auto-refresh dashboard — hot-reload, editabile da `/ui/config`. |
 
@@ -78,7 +80,7 @@ app/
     ├── layout.py   # APP_NAME, NAV_ITEMS, CONFIG_FIELDS
     └── pages.py    # dashboard (HTMX polling)
 static/             # htmx.min.js (vendored) + app.css del progetto
-scripts/            # run/checks/set_password/generate_token (bat+sh), set_password.py
+scripts/            # run/checks/set_password{% if has_api %}/generate_token{% endif %} (bat+sh), set_password.py
 data/               # auth.json, metrics.db, logs/ — gitignored
 ```
 

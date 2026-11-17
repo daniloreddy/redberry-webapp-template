@@ -17,6 +17,11 @@ default_port:
   help: "Porta di default (PORT in .env.example, Dockerfile, compose, README) — diversa per ogni progetto sullo stesso host"
   default: 8000
 
+has_api:
+  type: bool
+  help: "Il progetto espone API fuori da /ui protette da Bearer token (API_TOKENS)? No = niente scripts/generate_token né API_TOKENS in .env.example"
+  default: true
+
 _skip_if_exists:
   - "AGENTS.md"
   - "CLAUDE.md"
@@ -39,6 +44,7 @@ _exclude:
   - "tools"
   - "REPORT.md"
   - "TEMPLATE-NOTES.md"
+  - "{% if not has_api %}scripts/generate_token.*{% endif %}"
 
 _envops:
   keep_trailing_newline: true

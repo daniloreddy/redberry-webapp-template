@@ -51,13 +51,15 @@ def run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[
     return subprocess.run([exe, *cmd[1:]], cwd=cwd, env=env, capture_output=True, text=True, timeout=600)
 
 
-def scaffold(dest: Path) -> bool:
+def scaffold(dest: Path, *answers: str) -> bool:
     # Scaffold from a plain copy of the working tree: copier mishandles staged changes on paths with spaces.
     snapshot = dest.parent / "template"
-    shutil.copytree(
-        TEMPLATE, snapshot, ignore=shutil.ignore_patterns(".git", "venv", ".venv", "__pycache__", "node_modules")
-    )
-    r = run(["copier", "copy", "--trust", "--defaults", "-d", "app_name=Probe App", str(snapshot), str(dest)])
+    if not snapshot.exists():
+        shutil.copytree(
+            TEMPLATE, snapshot, ignore=shutil.ignore_patterns(".git", "venv", ".venv", "__pycache__", "node_modules")
+        )
+    data = [arg for answer in ("app_name=Probe App", *answers) for arg in ("-d", answer)]
+    r = run(["copier", "copy", "--trust", "--defaults", *data, str(snapshot), str(dest)])
     if r.returncode != 0:
         fail(f"scaffold failed: {(r.stdout + r.stderr)[-300:]}")
         return False
@@ -83,6 +85,16 @@ def check_invariants(dest: Path) -> None:
     claude = dest / "CLAUDE.md"
     pointer_ok = claude.exists() and claude.read_text(encoding="utf-8").replace("\r\n", "\n") == POINTER
     (ok if pointer_ok else fail)("CLAUDE.md pointer")
+
+
+def check_no_api(dest: Path) -> None:
+    """has_api=false: no token script, no API_TOKENS in .env.example, no mention in the docs."""
+    leftovers = [p.name for p in (dest / "scripts").glob("generate_token.*")]
+    (fail if leftovers else ok)(f"has_api=false: no generate_token script {leftovers or ''}".rstrip())
+    for name in (".env.example", "README.md", "AGENTS.md"):
+        text = (dest / name).read_text(encoding="utf-8")
+        hit = "API_TOKENS=" in text or "generate_token" in text
+        (fail if hit else ok)(f"has_api=false: {name} has no API_TOKENS/generate_token")
 
 
 def check_pin() -> None:
@@ -202,6 +214,9 @@ def main() -> int:
             check_invariants(dest)
             if not args.fast:
                 scaffold_tests(dest)
+        no_api = Path(tmp) / "app-no-api"
+        if scaffold(no_api, "has_api=false"):
+            check_no_api(no_api)
     check_pin()
     check_trust()
     if not args.fast:

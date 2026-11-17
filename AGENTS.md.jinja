@@ -30,7 +30,7 @@ app/
 static/                      htmx.min.js (vendored, verbatim) + app.css del progetto; opzionali
                               favicon.(png|ico|svg) / logo.(svg|png) → serviti a /ui/_assets/favicon|logo.
                               (solo regole delle sue pagine; la chrome è di webkit).
-scripts/                    set_password.sh/.bat (+ .py), generate_token.sh/.bat, checks.sh/.bat, run.sh/.bat — vedi Sviluppo.
+scripts/                    set_password.sh/.bat (+ .py), {% if has_api %}generate_token.sh/.bat, {% endif %}checks.sh/.bat, run.sh/.bat — vedi Sviluppo.
 docker-compose*.yml         Due file (prod/dev) — vedi docker.md.
 ```
 
@@ -79,7 +79,9 @@ TODO: mappa di eventuali package aggiuntivi non appena il progetto ne ha.
 scripts/checks.sh   # ruff + mypy + pytest (Windows: checks.bat)
 scripts/run.sh       # avvio locale (Windows: run.bat)
 scripts/set_password.sh   # prima esecuzione (Windows: set_password.bat), imposta la password dashboard
+{% if has_api -%}
 scripts/generate_token.sh # stampa un Bearer token casuale per API_TOKENS (Windows: generate_token.bat)
+{% endif -%}
 ```
 
 ## Allineamento al template
