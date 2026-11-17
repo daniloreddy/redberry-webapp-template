@@ -206,6 +206,10 @@ Copier-"owned" file):
   `python scripts/align_to_template.py <project-path> --app-name "Project
   name" [--report out.md]`.
 
+The Claude Code skill that drives an alignment (`align-to-template`) is not in
+this repo: it lives in `~/.claude/skills/align-to-template/SKILL.md`, so it is
+available from any project.
+
 ## Releases — tag every change
 
 Copier resolves `copier copy` / `copier update` to the **latest git tag**, not `HEAD`. After every pushed change to
