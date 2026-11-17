@@ -5,13 +5,16 @@
 
 Checks: the scaffold generates; .gitattributes / CRLF .bat / LF .sh / CI / AGENTS.md + one-line CLAUDE.md
 pointer / README sections; every documented
-`copier copy|update` carries --trust; the scaffold's ruff and pytest pass. A template pin older than the local
+`copier copy|update` carries --trust; the scaffold's ruff and pytest pass; full mode (pre-push) also fails when a
+file that reaches generated projects changed since the latest vX.Y.Z tag and HEAD is not tagged (copier generates
+from the latest tag, so an untagged change would silently never reach new projects or `copier update`). A template pin older than the local
 webkit version is only a warning: the webkit is released on its own, the template catches up when it wants.
 """
 
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import os
 import re
@@ -113,6 +116,49 @@ def check_trust() -> None:
         ok("all copier commands carry --trust")
 
 
+def _git(*args: str) -> str:
+    return run(["git", *args], TEMPLATE).stdout.strip()
+
+
+def _copier_excludes() -> list[str]:
+    """`_exclude` patterns of copier.yml: matching files never reach a generated project."""
+    text = (TEMPLATE / "copier.yml").read_text(encoding="utf-8")
+    block = re.search(r"^_exclude:[ \t]*\n((?:[ \t]+-.*\n?)+)", text, re.M)
+    return re.findall(r"-\s*[\"']?([^\"'\n]+?)[\"']?\s*$", block.group(1), re.M) if block else []
+
+
+def _reaches_projects(path: str, excludes: list[str]) -> bool:
+    if path == "copier.yml":
+        return True  # questions/defaults change what gets generated
+    parts = path.split("/")
+    prefixes = ["/".join(parts[: i + 1]) for i in range(len(parts))]
+    return not any(fnmatch.fnmatch(p, pat) for p in [*prefixes, *parts] for pat in excludes)
+
+
+def check_release_tag() -> None:
+    """Copier generates from the LATEST TAG, not HEAD: a pushed change that reaches projects must be tagged."""
+    last = _git("describe", "--tags", "--abbrev=0", "--match", "v*")
+    if not last:
+        fail("no vX.Y.Z tag found: copier would generate from HEAD")
+        return
+    if _git("tag", "--points-at", "HEAD", "--list", "v*"):
+        ok(f"HEAD is tagged ({last})")
+        return
+    excludes = _copier_excludes()
+    changed = [p for p in _git("diff", "--name-only", f"{last}..HEAD").splitlines() if p]
+    relevant = [p for p in changed if _reaches_projects(p, excludes)]
+    if not relevant:
+        ok(f"no generated-file change since {last}: no new tag needed")
+        return
+    major, minor, patch = (int(x) for x in last.lstrip("v").split("."))
+    nxt = f"v{major}.{minor}.{patch + 1}"
+    shown = ", ".join(relevant[:5]) + (", ..." if len(relevant) > 5 else "")
+    fail(
+        f"{len(relevant)} file(s) reaching projects changed since {last} ({shown}) but HEAD is not tagged: "
+        f"copier would keep generating {last}. Run: git tag {nxt} && git push origin main {nxt}"
+    )
+
+
 def scaffold_tests(dest: Path) -> None:
     """Run ruff and pytest of the generated app in a venv cached across runs (keyed by requirements hash)."""
     reqs = (dest / "requirements.txt").read_bytes() + (dest / "requirements.dev.txt").read_bytes()
@@ -158,6 +204,8 @@ def main() -> int:
                 scaffold_tests(dest)
     check_pin()
     check_trust()
+    if not args.fast:
+        check_release_tag()
     print()
     if failures:
         print(f"{len(failures)} deviation(s)")

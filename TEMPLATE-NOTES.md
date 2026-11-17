@@ -215,3 +215,9 @@ available from any project.
 Copier resolves `copier copy` / `copier update` to the **latest git tag**, not `HEAD`. After every pushed change to
 the scaffold, create and push a new `vX.Y.Z` tag (minor bump for structure changes), otherwise new projects are
 silently generated from the old tag. Check with `git tag --sort=-v:refname | head -3`.
+
+**Enforced by the pre-push hook** (`tools/check_template.py`, full mode): if any file that reaches generated
+projects (everything not matched by `_exclude` in `copier.yml`, plus `copier.yml` itself) changed since the latest
+`vX.Y.Z` tag and `HEAD` is not tagged, the push is refused with the exact command to run
+(`git tag vX.Y.Z+1 && git push origin main vX.Y.Z+1`). Changes to excluded files only (`tools/`, `.claude/`,
+`TEMPLATE-NOTES.md`, ...) push without a tag. Hooks are not versioned: `python tools/install_hooks.py` after a clone.
