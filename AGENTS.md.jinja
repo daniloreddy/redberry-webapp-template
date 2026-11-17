@@ -46,6 +46,9 @@ TODO: mappa di eventuali package aggiuntivi non appena il progetto ne ha.
 - **Init all'avvio con `web.add_startup(...)`** (webkit ≥v0.13.0): schema DB, migrazioni,
   directory richieste girano nel lifespan prima dei task di background; un'eccezione blocca
   l'avvio (fail-fast) invece di emergere alla prima richiesta. Mai init a import-time.
+- **Chiusura ordinata con `web.add_shutdown(...)`** (webkit ≥v0.14.0): poller, client/sessioni,
+  pool chiusi a fine lifespan, dopo il cancel dei task di background, in ordine inverso; mai in un
+  `finally` di un task `add_background` (il cancel non viene atteso).
 - **UI sotto `/ui`**, mai su root — è il confine che rende univoco cosa è protetto da
   cookie (`/ui/*`) e cosa da Bearer opt-in (il resto) — vedi `_auth_gate` in
   `redberry_webkit/bootstrap.py`. `/ui/_assets` (app.css di webkit) e `/ui/_static` (htmx, css
